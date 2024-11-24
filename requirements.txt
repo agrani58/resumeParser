@@ -1,0 +1,8 @@
+pdfminer3
+pyresparser
+streamlit
+pafy
+pymysql
+streamlit-tags
+nltk
+spacy==2.3.5
