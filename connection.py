@@ -6,7 +6,7 @@ def db_connection():
             host='localhost', 
             user='root', 
             password='root',  
-            database='Resume',
+            database='resume',
         )
         return connection
     except pymysql.MySQLError as e:
