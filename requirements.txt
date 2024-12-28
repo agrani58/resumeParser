@@ -6,3 +6,5 @@ pymysql
 streamlit-tags
 nltk
 spacy==2.3.5
+python-docx
+fpdf

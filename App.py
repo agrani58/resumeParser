@@ -1,86 +1,80 @@
-import streamlit as st
-import base64, random 
-import time,datetime
-import pymysql
-import pafy
-import nltk
-nltk.download('stopwords')
-#importing database
-from connection import db_connection
-#libraries for parsing from datetime import datetime 
-from pyresparser import ResumeParser
-from pdfminer3.pdfinterp import PDFResourceManager,PDFPageInterpreter
-from pdfminer3.layout import LAParams,LTTextBox
-from pdfminer3.pdfpage import PDFPage
-from pdfminer3.converter import TextConverter
-import io,random
-from Courses import ds_course, web_course,android_course, ios_course, uiux_course
-from PIL import Image
-
+from libraries import *
 
 #e63946 red , yellow #f1faee, blue #a8dadc, bluedark #457b9d, darkest blue #1d3557
-
-st.set_page_config(
-    page_title="Resume Parser",
-    page_icon='Logo\logo.png',
-)
-
-# page background colors
-page_bg_color ="""
-<style>
-.stApp {
-    background-color: #f0f8ff; /* Light blue color */
-}
-</style>"""
-st.markdown(page_bg_color, unsafe_allow_html=True)
-
-sidebar_bg_color= """
-<style>
-    .css-1d391kg { 
-    background-color: #E5ECE9; 
-}
-</style>"""
-st.markdown(sidebar_bg_color , unsafe_allow_html=True)
-#back ground color ends
-
-st.sidebar.markdown("Choose user")
-activities=["User","Admin"]
-choice = st.sidebar.selectbox("Choose among the given options:",activities)
-
-def run():
-
-    try:
-        # Displaying the image in the center using st.image
-        col1, col2, col3 = st.columns([1, 2, 1])  # Create 3 columns for alignment
-        with col2:  # Place the image in the middle column
-            
-            st.markdown("<style>img {margin-top: -50px; margin-left: -75px }</style>", unsafe_allow_html=True) #img represents all images so it brings all img to -50 
-            st.image("Logo/logo2.png",caption="           ", width=500)  
-            st.markdown("<div style ='margin-top: -30px; margin-left:110px;'> <p>AI Resume Parser</p></div>", unsafe_allow_html=True)
+#importing the html components
+components()
 
 
-    except FileNotFoundError:
-        st.error("Image file not found!")
+# #Convert .docx to PDF:
+# import pypandoc
+# def docx_to_pdf(docx_path, pdf_path):
+#     # Convert the .docx file to a PDF
+#     output = pypandoc.convert_docx(docx_path, 'pdf', outputfile=pdf_path)
+#     return output
 
+# # Usage
+# docx_path = "path_to_your_resume.docx"
+# pdf_path = "converted_resume.pdf"
+# docx_to_pdf(docx_path, pdf_path)
+# print(f"PDF saved at {pdf_path}")
 
-# Run the app
-if __name__ == "__main__":
-    run()
-    
-if choice == 'User':
-    st.markdown('''<div style='margin-top: 20px; margin-left: 265px; margin-bottom: -40px'> <h5 style='color:#1d3557;'>Upload your Resume</h5>
-    </div>''', unsafe_allow_html=True)
+# display the resume
+def show_resume(resume_path,resume_type):
+    if resume_type =="pdf":
+        with open(resume_path, "rb") as f:
+            base64_pdf= base64.b64encode(f.read()).decode('utf-8')
+        pdf_display=F'<iframe src="data:application/pdf;base64,{base64_pdf}" width="700" height="1000" type="application/pdf"></iframe>'
+        st.markdown(pdf_display,unsafe_allow_html=True);
+        
+    elif resume_type == "docx":
+        pdf_data = docx_to_pdf(resume_path)
+        base64_pdf = base64.b64encode(pdf_data).decode('utf-8')
+        pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" width="700" height="1000" type="application/pdf"></iframe>'
+        st.markdown(pdf_display, unsafe_allow_html=True)
+    else:
+        st.error("Unsupported file type. Please upload a PDF or DOCX file.")
+             
+def resume_reader(file):
+    resource_manager=PDFResourceManager()#identify and manage pdf fonts
+    fake_file_handle =io.StringIO() #virtual file in memeoryy to store extracted text temporiraly 
+    converter = TextConverter(resource_manager,fake_file_handle,laparams=LAParams())
+    page_interpretor=PDFPageInterpreter(resource_manager,converter)
+    with open(file, 'rb') as fh:
+        for page in PDFPage.get_pages(fh,caching=True,check_extractable=True):
+            page_interpretor.process_page(page)
+            print(page)
+        text=fake_file_handle.getvalue()
+    converter.close()
+    fake_file_handle.close()
+    return text
 
+# Directory where resumes will be stored
+save_dir = './Uploaded_Resumes'
 
-    
+# Ensure the directory exists
+if not os.path.exists(save_dir):
+    os.makedirs(save_dir)
+
 #file uploading box.
-file_uploader=st.file_uploader("",type=["pdf","DOCX"])
-if file_uploader is not None:
+file_uploaded=st.file_uploader(" ",type=["pdf","DOCX"])
+if file_uploaded is not None:
     with st.spinner('uploading your resume...'):
-        time.sleep(5)
-    save_image_path ='./Uploaded_Resume/'+file_uploader.name
+        time.sleep(2) #time between loading the file and displaying the file
+    save_resume_path =os.path.join(save_dir ,file_uploaded.name)
+    resume_type = save_resume_path.split('.')[-1] #extracts file type
+#read file in binary   
+    with open(save_resume_path,"wb") as f: 
+        f.write(file_uploaded.getbuffer())
+        
+    show_resume(save_resume_path, resume_type)
+    resume_data=ResumeParser(save_resume_path).get_extracted_data()
     
     
+    #display the resume
+    if resume_data:
+        resume_text = " ".join([str(value) for value in resume_data.values()])  # Combine the extracted data into a single string
+        st.text_area("Extracted text here", resume_text, height=1000)
+
 #database insertion starts 
 def insert_data(name, email, resume_score, timestamp, no_of_pages, recommendation_field, candidate_level, skills, recommended_skills, courses):
         DB_table_name = 'user_data'
