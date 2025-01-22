@@ -1,14 +1,9 @@
-import pymysql
+# import mysql.connector
 
-def db_connection():
-    try:
-        connection = pymysql.connect(
-            host='localhost', 
-            user='root', 
-            password='root',  
-            database='resume',
-        )
-        return connection
-    except pymysql.MySQLError as e:
-        print(f"Error connecting to the database: {e}")
-        return None
+# def get_db_connection():
+#     return mysql.connector.connect(
+#         host="localhost",    
+#         user="root",
+#         password="root", 
+#         database="resume_parser"  
+#     )
