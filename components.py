@@ -30,3 +30,9 @@ def components():
                     
     except FileNotFoundError:
             st.error("Image file not found!")    
+
+
+
+# from model import extract_text_from_pdf, process_resume_with_model
+#e63946 red , yellow #f1faee, blue #a8dadc, bluedark #457b9d, darkest blue #1d3557
+#importing the html components

@@ -7,6 +7,7 @@ import os
 from io import BytesIO
 from fpdf import FPDF
 nltk.download('stopwords')
+import google.generativeai as genai
 #importing database
 # from connection import db_connection
 from components import components
