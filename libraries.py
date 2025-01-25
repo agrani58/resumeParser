@@ -31,5 +31,3 @@ from pdfminer.pdfpage import PDFPage
 import io,random
 from Courses import ds_course, web_course,android_course, ios_course, uiux_course
 from PIL import Image
-
-from langchain_ollama import OllamaLLM  # New import

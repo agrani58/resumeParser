@@ -2,9 +2,8 @@
 from libraries import *
 import streamlit_authenticator as stauth
 from PyPDF2 import PdfReader
-from text import resume_details, display_parsed_data
-
-
+from json_file import resume_details, display_parsed_data
+from Courses import ds_course,web_course,android_course,ios_course,uiux_course,resume_videos,interview_videos
 
 
     # Directory where resumes will be stored
@@ -38,6 +37,20 @@ def extract_text_from_pdf(uploaded_resume_path):
     except Exception as e:
         st.error(f"Error extracting text from PDF: {e}")
         return None
+def course_recommender(course_list):
+    st.subheader("Courses and  Certificates Recommendation");
+    c=0 
+    rec_course=[]
+    no_of_reco=st.slider("choose no of courses you want to be recommended:", 1,5,10)
+    random.shuffle(course_list)
+    for c_name,c_link in course_list:
+        c+=1
+        st.markdown(f"({c}) [{c_name}]({c_link})")
+        rec_course.append(c_name)
+        if c==no_of_reco:
+            break
+        
+        return rec_course
 
 def run():
     components()
@@ -110,7 +123,9 @@ def run():
                 if parsed_data:
                     display_parsed_data(parsed_data)
 
-            
+        course_recommender()
+
+
 
 #         # Call the run function to execute the app
 if __name__ == "__main__":
