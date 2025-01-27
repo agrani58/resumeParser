@@ -20,11 +20,10 @@ def components():
     #back ground color ends
     try:
         
-                # Displaying the image in the center using st.image
         col1, col2, col3 = st.columns([1, 2, 1])  # Create 3 columns for alignment
-        with col2:  # Place the image in the middle column
+        with col2:  
                     
-            st.markdown("<style>img {margin-top: -50px; margin-left: -75px }</style>", unsafe_allow_html=True) #img represents all images so it brings all img to -50 
+            st.markdown("<style>img {margin-top: -50px; margin-left: -75px }</style>", unsafe_allow_html=True)
             st.image("Logo/logo2.png",caption="           ", width=500)  
             st.markdown("<div style ='margin-top: -30px; margin-left:110px;'> <p>AI Resume Parser</p></div>", unsafe_allow_html=True)
                     
