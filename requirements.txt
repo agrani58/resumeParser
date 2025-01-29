@@ -13,7 +13,7 @@ pywin32
 python-docx
 mysql-connector-python
 google-generativeai
-pythoncom
+
 pymupdf
 pdfminer.six
 Pillow
