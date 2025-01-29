@@ -12,7 +12,6 @@ genai.configure(api_key=API_KEY)
 
 model = genai.GenerativeModel("gemini-1.5-flash")
 
-
 def resume_details(resume_text):
     prompt = f"""
     You are a resume parsing assistant. Given the following resume text, extract the following details in a structured JSON format:
@@ -26,12 +25,12 @@ def resume_details(resume_text):
     - Professional_Experience_in_Years
     - Highest_Education
     - Skills
-    - Applied_for_Profile (given in the resume or based on certifications,education and skills )
+    - Applied_for_Profile (given in the resume or based on certifications, education, and skills)
     - Education (Include these EXACT field names):
         - University
-        - Degree 
+        - Degree
         - Graduation_Date (use format 'Month YYYY' like 'May 2023')
-    - Professional_Experience (is also known as work experience.Include Job Title, Company, Years of Experience)
+    - Professional_Experience (is also known as work experience. Include Job Title, Company, Years of Experience)
     - Certifications
     - Suggested_Resume_Category (infer the most relevant job category based on skills, certifications, and work experience; do not use 'N/A')
     - Recommended_Additional_Skills (provide 3-5 concrete skills relevant to the Suggested_Resume_Category; do not use 'N/A')
@@ -42,62 +41,78 @@ def resume_details(resume_text):
     """
     response = model.generate_content(prompt).text
     response_api = response.replace("```json", "").replace("```", "").strip()
-    
-    # # ADD THIS LINE TO CONVERT "None" TO "N/A"
-    # response_api = response_api.replace('"None"', '"N/A"').replace("'None'", "'N/A'")
+
+    # Convert 'None' to 'N/A' in the response
+    response_api = response_api.replace('"None"', '"N/A"').replace("'None'", "'N/A'")
+
     try:
         parsed_data = json.loads(response_api)
-        # Ensure all fields are present and properly formatted
-        parsed_data.setdefault("Name", "N/A")
-        parsed_data.setdefault("Phone_1","N/A")
-        parsed_data.setdefault("Github", "N/A")
-        parsed_data.setdefault("Email", "N/A")
-        parsed_data.setdefault("Address","N/A")
-        parsed_data.setdefault("Github", "N/A")
-        parsed_data.setdefault("Linkedin", "N/A")
-        parsed_data.setdefault("Address","N/A")
-        parsed_data.setdefault("Github", "N/A")
-        parsed_data.setdefault("Highest_Education", "N/A")
-        
-                # Handle Education and Experience defaults
+
+        # Replace existing Certifications handling with:
+        parsed_data.setdefault("Certifications", [])
+        if not isinstance(parsed_data["Certifications"], list):
+            parsed_data["Certifications"] = [parsed_data["Certifications"]]
+        parsed_data["Certifications"] = [c for c in parsed_data["Certifications"] if c not in [None, "None", ""]]
+        if not parsed_data["Certifications"]:
+            parsed_data["Certifications"] = ["N/A"]
+        # Handle missing graduation dates in Education
         for edu in parsed_data.get("Education", []):
-    # Handle different key variants
-            edu["Graduation Date"] = edu.get("Graduation_Date", "N/A")  # Catch alternate spellings
-        
-        if parsed_data["Highest_Education"] not in [edu["Degree"] for edu in parsed_data.get("Education", [])]:
+            if "Graduation_Date" in edu and (edu["Graduation_Date"] in ["None", None, ""]):
+                edu["Graduation_Date"] = "N/A"  # Correctly update missing graduation dates
+
+        # Check for missing fields in the highest education
+        if parsed_data.get("Highest_Education") in ["None", None, ""]:
             parsed_data["Highest_Education"] = "N/A"
-        # Infer Suggested_Resume_Category if N/A
-        if parsed_data["Suggested_Resume_Category"] == "N/A":
+
+        # Ensure Suggested Resume Category is inferred if not available
+        if parsed_data.get("Suggested_Resume_Category") in ["N/A", None]:
             Applied_for_Profile = parsed_data.get("Applied_for_Profile", [])
             if isinstance(Applied_for_Profile, list) and len(Applied_for_Profile) > 0:
                 parsed_data["Suggested_Resume_Category"] = Applied_for_Profile[0]
-        
-        # Ensure Recommended_Additional_Skills is a list and not N/A
-        ras = parsed_data.get("Recommended_Additional_Skills", [])
-        if not isinstance(ras, list):
-            parsed_data["Recommended_Additional_Skills"] = []
 
+        # Ensure Professional Experience defaults if missing
         for job in parsed_data.get("Professional_Experience", []):
             job.setdefault("Company", "N/A")
             job.setdefault("Job Title", "N/A")
             job.setdefault("Years of Experience", "N/A")
+
+        # Handle Recommended Additional Skills if missing
+        if not isinstance(parsed_data.get("Recommended_Additional_Skills", []), list):
+            parsed_data["Recommended_Additional_Skills"] = []
+
+        def convert_none(obj):
+            if isinstance(obj, dict):
+                return {k: convert_none(v) for k, v in obj.items()}
+            if isinstance(obj, list):
+                return [convert_none(item) for item in obj]
+            return obj if obj not in [None, "None"] else "N/A"
+        
+        parsed_data = convert_none(parsed_data)
+
+
         return parsed_data
     except json.JSONDecodeError as e:
         st.error(f"Error decoding JSON: {e}")
         return None
 
 def count_na(parsed_data):
-
     missing = []
     
     def _tracker(data, path=""):
         if isinstance(data, dict):
-            for k, v in data.items(): #k is path, v is value 
-                new_path = f"{path}.{k}" if path else k #ternery operation
-                if v in ["N/A", "None", None]:  
-                    missing.append(new_path) #adds path to missing list 
+            for k, v in data.items():
+                new_path = f"{path}.{k}" if path else k
+                # Check for N/A in lists
+                if isinstance(v, list):
+                    for i, item in enumerate(v):
+                        if item == "N/A":  # Direct N/A in list
+                            missing.append(f"{new_path}[{i}]")
+                        else:
+                            _tracker(item, f"{new_path}[{i}]")
+                elif v in ["N/A", "None", None]:
+                    missing.append(new_path)
                 else:
-                    _tracker(v, new_path) 
+                    _tracker(v, new_path)
         elif isinstance(data, list):
             for i, item in enumerate(data):
                 _tracker(item, f"{path}[{i}]")
@@ -137,7 +152,7 @@ def display_parsed_data(parsed_data):
     Address = parsed_data.get("Address", "N/A")
     Linkedin = parsed_data.get("Linkedin", "N/A")
     Github = parsed_data.get("Github", "N/A")
-    Suggested_Resume_Category=parsed_data.get("Suggested_Resume_Category","N/A")
+    Suggested_Resume_Category = parsed_data.get("Suggested_Resume_Category", "N/A")
     Applied_for_Profile = parsed_data.get("Applied_for_Profile", "N/A")
     Professional_Experience_in_Years = parsed_data.get("Professional_Experience_in_Years", "N/A")
     Highest_Education = parsed_data.get("Highest_Education", "N/A")
@@ -153,7 +168,10 @@ def display_parsed_data(parsed_data):
             if any(val != "N/A" for val in job.values())
         ]
     else:
-        Professional_Experience_str = ["No Professional Experience Data Available"]
+        Professional_Experience_str = ["N/A"]
+    
+    # Ensure that Certifications is never empty and defaults to "N/A" if missing or empty
+    Certifications = parsed_data.get("Certifications", ["N/A"])
 
     Education = parsed_data.get("Education", [])
     if Education:
@@ -162,12 +180,10 @@ def display_parsed_data(parsed_data):
     else:
         Education_str = ["N/A"]
         
-    Certifications = parsed_data.get("Certifications", [])
     na_count = count_na(parsed_data)
     Suggested_Resume_Category = parsed_data.get("Suggested_Resume_Category", "N/A")
     
     Recommended_Additional_Skills = parsed_data.get("Recommended_Additional_Skills", [])
-
 
     # Render data in containers using the function
     st.markdown(
@@ -190,7 +206,7 @@ def display_parsed_data(parsed_data):
     st.write("Linkedin:", Linkedin)
     st.write("Github:", Github)
     
-    display_in_container("Suggested_Resume_Category",Suggested_Resume_Category)
+    display_in_container("Suggested_Resume_Category", Suggested_Resume_Category)
     # Display each field with its respective value using the container function
     display_in_container("Profile Applied For", Applied_for_Profile)
     
@@ -215,4 +231,3 @@ def display_parsed_data(parsed_data):
     # Display Recommended Additional Skills as a list
     display_in_container(f"Recommended Additional Skills for {Suggested_Resume_Category}", Recommended_Additional_Skills)
     st.caption("Adding these skills to resume will boost your chance of getting a job")
-    
