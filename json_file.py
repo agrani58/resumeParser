@@ -3,7 +3,7 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 import os
 import streamlit as st
-
+from ats import is_valid_date
 load_dotenv()
 
 # Load environment variables from the .env file
@@ -47,6 +47,27 @@ def resume_details(resume_text):
 
     try:
         parsed_data = json.loads(response_api)
+        required_top_level_fields = {
+            "Name": "N/A",
+            "Email": "N/A",
+            "Phone_1": "N/A",
+            "Address": "N/A",
+            "Linkedin": "N/A",
+            "GitHub": "N/A",  # Correct casing
+            "Professional_Experience_in_Years": "N/A",
+            "Highest_Education": "N/A",
+            "Skills": [],
+            "Applied_for_Profile": "N/A",
+            "Education": [],
+            "Professional_Experience": [],
+            "Certifications": [],
+            "Suggested_Resume_Category": "N/A",
+            "Recommended_Additional_Skills": []
+        }
+
+        # Set defaults for missing fields
+        for field, default in required_top_level_fields.items():
+            parsed_data.setdefault(field, default)
 
         # Replace existing Certifications handling with:
         parsed_data.setdefault("Certifications", [])
@@ -55,20 +76,22 @@ def resume_details(resume_text):
         parsed_data["Certifications"] = [c for c in parsed_data["Certifications"] if c not in [None, "None", ""]]
         if not parsed_data["Certifications"]:
             parsed_data["Certifications"] = ["N/A"]
-        # Handle missing graduation dates in Education
+
         for edu in parsed_data.get("Education", []):
-            if "Graduation_Date" in edu and (edu["Graduation_Date"] in ["None", None, ""]):
-                edu["Graduation_Date"] = "N/A"  # Correctly update missing graduation dates
+            # Ensure Graduation_Date field exists and is properly marked
+            edu.setdefault("Graduation_Date", "N/A")  # Key addition
+            if edu["Graduation_Date"] in ["None", None, ""]:
+                edu["Graduation_Date"] = "N/A"
 
         # Check for missing fields in the highest education
         if parsed_data.get("Highest_Education") in ["None", None, ""]:
             parsed_data["Highest_Education"] = "N/A"
 
-        # Ensure Suggested Resume Category is inferred if not available
-        if parsed_data.get("Suggested_Resume_Category") in ["N/A", None]:
-            Applied_for_Profile = parsed_data.get("Applied_for_Profile", [])
-            if isinstance(Applied_for_Profile, list) and len(Applied_for_Profile) > 0:
-                parsed_data["Suggested_Resume_Category"] = Applied_for_Profile[0]
+        # # Ensure Suggested Resume Category is inferred if not available
+        # if parsed_data.get("Suggested_Resume_Category") in ["N/A", None]:
+        #     Applied_for_Profile = parsed_data.get("Applied_for_Profile", [])
+        #     if isinstance(Applied_for_Profile, list) and len(Applied_for_Profile) > 0:
+        #         parsed_data["Suggested_Resume_Category"] = Applied_for_Profile[0]
 
         # Ensure Professional Experience defaults if missing
         for job in parsed_data.get("Professional_Experience", []):
@@ -96,28 +119,29 @@ def resume_details(resume_text):
         return None
 
 def count_na(parsed_data):
-    missing = []
-    
+    missing = []  # This will store the paths of missing values
+
+    # Recursive function to traverse through the parsed data
     def _tracker(data, path=""):
-        if isinstance(data, dict):
-            for k, v in data.items():
-                new_path = f"{path}.{k}" if path else k
-                # Check for N/A in lists
-                if isinstance(v, list):
-                    for i, item in enumerate(v):
-                        if item == "N/A":  # Direct N/A in list
-                            missing.append(f"{new_path}[{i}]")
-                        else:
-                            _tracker(item, f"{new_path}[{i}]")
-                elif v in ["N/A", "None", None]:
-                    missing.append(new_path)
+        if isinstance(data, dict):  # If the data is a dictionary
+            for key, value in data.items():
+                new_path = f"{path}.{key}" if path else key  # Construct the path
+                if isinstance(value, (dict, list)):
+                    _tracker(value, new_path)  # Recurse into dictionaries or lists
                 else:
-                    _tracker(v, new_path)
-        elif isinstance(data, list):
-            for i, item in enumerate(data):
-                _tracker(item, f"{path}[{i}]")
-    
+                    if value in ["N/A", None, "None"]:  # Check if the value is missing
+                        missing.append(new_path)  # Add the path to missing list
+        elif isinstance(data, list):  # If the data is a list
+            for idx, item in enumerate(data):
+                new_path = f"{path}[{idx}]"
+                if isinstance(item, (dict, list)):
+                    _tracker(item, new_path)  # Recurse into lists or dictionaries
+                elif item in ["N/A", None, "None"]:  # Check for missing values
+                    missing.append(new_path)  # Add the path to missing list
+
+    # Start the recursion from the top level of parsed_data
     _tracker(parsed_data)
+
     return len(missing), missing
 
 def display_in_container(title, value):
@@ -151,7 +175,7 @@ def display_parsed_data(parsed_data):
     Contacts = parsed_data.get('Phone_1', 'N/A')
     Address = parsed_data.get("Address", "N/A")
     Linkedin = parsed_data.get("Linkedin", "N/A")
-    Github = parsed_data.get("Github", "N/A")
+    GitHub = parsed_data.get("GitHub", "N/A")
     Suggested_Resume_Category = parsed_data.get("Suggested_Resume_Category", "N/A")
     Applied_for_Profile = parsed_data.get("Applied_for_Profile", "N/A")
     Professional_Experience_in_Years = parsed_data.get("Professional_Experience_in_Years", "N/A")
@@ -174,13 +198,20 @@ def display_parsed_data(parsed_data):
     Certifications = parsed_data.get("Certifications", ["N/A"])
 
     Education = parsed_data.get("Education", [])
-    if Education:
-        Education_str = [f"{edu.get('Degree', 'N/A')} from {edu.get('University', 'N/A')} (Graduated: {edu.get('Graduation Date', 'N/A')})"
-                        for edu in Education]
-    else:
-        Education_str = ["N/A"]
+
+    Education_str = []
+    for edu in Education:
+        degree = edu.get('Degree', 'N/A')
+        university = edu.get('University', 'N/A')
+        raw_date = edu.get('Graduation_Date', 'N/A')  # Note the corrected key name
         
-    na_count = count_na(parsed_data)
+        # Validate and format date
+        if is_valid_date(raw_date):
+            date_display = raw_date
+        else:
+            date_display = "N/A"
+        Education_str.append(f"{degree} from {university} (Graduated: {date_display})")
+
     Suggested_Resume_Category = parsed_data.get("Suggested_Resume_Category", "N/A")
     
     Recommended_Additional_Skills = parsed_data.get("Recommended_Additional_Skills", [])
@@ -204,7 +235,7 @@ def display_parsed_data(parsed_data):
     st.write("Contacts:", Contacts)
     st.write("Address:", Address)
     st.write("Linkedin:", Linkedin)
-    st.write("Github:", Github)
+    st.write("GitHub:", GitHub)
     
     display_in_container("Suggested_Resume_Category", Suggested_Resume_Category)
     # Display each field with its respective value using the container function

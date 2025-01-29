@@ -1,5 +1,6 @@
 
 from libraries import *
+from ats import convert_docx_to_pdf
 import streamlit_authenticator as stauth
 from PyPDF2 import PdfReader
 from json_file import resume_details, display_parsed_data, count_na  # Add count_na here
@@ -55,35 +56,6 @@ def run():
     components()
 
         
-    def convert_docx_to_pdf(docx_resume_path):
-        
-        if docx_resume_path.endswith(".docx"): 
-            try:
-                # Initialize COM threading model
-                pythoncom.CoInitialize()  # COM allows different software components (written in different languages) to communicate with each other.
-
-                # Define paths for DOCX and the output PDF
-                uploaded_resume_path = os.path.splitext(docx_resume_path)[0] + ".pdf"  
-
-                # Initialize Word COM object
-                word = comtypes.client.CreateObject("Word.Application")
-                word.Visible = False  # Run Word in the background
-
-                # Open DOCX and save as PDF
-                in_file = word.Documents.Open(docx_resume_path)
-                in_file.SaveAs(uploaded_resume_path, FileFormat=17)  # PDF format constant
-                in_file.Close()
-                word.Quit()
-
-            except Exception as e:
-                st.error(f"An error occurred during conversion: {e}")
-                return None
-            finally:
-                # Uninitialize COM after usage
-                pythoncom.CoUninitialize()
-
-        return uploaded_resume_path  # Return the path to the converted PDF file
-
     st.markdown(
             '''<div style='margin-top: 20px; text-align: center;'>
                 <h5 style='color: #1d3557;'>Upload your Resume</h5>
@@ -143,26 +115,33 @@ def run():
             display_parsed_data(st.session_state.parsed_data)
             
         na_count, na_paths = count_na(st.session_state.parsed_data)
-        
-        if na_count > 0:
+                
         # Group missing fields by category
-            category_groups = {}
+        category_groups = {}
+
+        # Check for missing or 'N/A' values
         for path in na_paths:
-            # Remove array indexes and split into components
             clean_path = path.replace("[0]", "").replace("_", " ").title()
-            parts = clean_path.split('.')
             
-            # Group by parent category
-            if len(parts) > 1:
-                category = parts[0]
-                field = parts[1]
+            # Check if the value is 'N/A' or empty for fields that are critical
+            if clean_path.lower() in ["graduated: n/a", "github: n/a", "n/a", ""]:
+                category = "Education/Contact Information"
+                field = clean_path
                 if category not in category_groups:
                     category_groups[category] = []
                 category_groups[category].append(field)
             else:
-                category_groups[clean_path] = None
+                parts = clean_path.split('.')
+                if len(parts) > 1:
+                    category = parts[0]
+                    field = parts[1]
+                    if category not in category_groups:
+                        category_groups[category] = []
+                    category_groups[category].append(field)
+                else:
+                    category_groups[clean_path] = None
 
-        # Create display items
+        # Create display items for missing fields
         display_items = []
         for category, fields in category_groups.items():
             if fields:
@@ -170,6 +149,7 @@ def run():
             else:
                 display_items.append(category)
 
+        # Display missing fields
         st.markdown(f"""
         <div style="margin-top: 20px; padding: 10px; background-color: #ffe6e6; border-radius: 5px;">
             ⚠️ Found {na_count} missing fields:
@@ -182,4 +162,5 @@ def run():
 #         # Call the run function to execute the app
 if __name__ == "__main__":
         run()
+
 
