@@ -45,4 +45,31 @@ def is_valid_date(date_str):
         month, year = date_str.split('/')
         return month.isdigit() and 1 <= int(month) <= 12 and year.isdigit() and len(year) == 4
     
+    if date_str in ["Present", "N/A"]:
+        return True
     return False
+def _tracker(data, missing, path="", strict=False):
+    if isinstance(data, dict):
+        for key, value in data.items():
+            new_path = f"{path}.{key}" if path else key
+            # Skip tracking "LinkedIn" if it's already in the missing list
+            if key.lower() == "linkedin" and any("linkedin" in m.lower() for m in missing):
+                continue
+            if isinstance(value, (dict, list)):
+                _tracker(value, missing, new_path, strict)
+            else:
+                if str(value).strip().upper() in ["N/A", "NA", "NONE", ""]:
+                    missing.append(new_path)
+        # Append path if the dict is empty regardless of strict mode
+        if not data:
+            missing.append(path)
+    elif isinstance(data, list):
+        for idx, item in enumerate(data):
+            new_path = f"{path}[{idx}]" if path else f"[{idx}]"
+            if isinstance(item, str) and item.strip().upper() in ["N/A", "NA"]:
+                missing.append(new_path)
+            elif isinstance(item, (dict, list)):
+                _tracker(item, missing, new_path, strict)
+        # Append path if the list is empty regardless of strict mode
+        if not data:
+            missing.append(path)

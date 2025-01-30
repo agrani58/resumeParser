@@ -1,9 +1,11 @@
-
 from libraries import *
 from ats import convert_docx_to_pdf
 import streamlit_authenticator as stauth
 from PyPDF2 import PdfReader
-from json_file import resume_details, display_parsed_data, count_na  # Add count_na here
+
+from collections import defaultdict 
+# In home.py - Update import statement
+from json_file import resume_details, display_parsed_data, count_na 
 from Courses import ds_course,web_course,android_course,ios_course,uiux_course,resume_videos,interview_videos
 
 uploaded_resume_dir = os.path.abspath('./Uploaded_Resumes')
@@ -115,46 +117,53 @@ def run():
             display_parsed_data(st.session_state.parsed_data)
             
         na_count, na_paths = count_na(st.session_state.parsed_data)
-                
-        # Group missing fields by category
-        category_groups = {}
+                        
+        clean_paths = [
+            re.sub(r'\[\d+\]', '', p)  # Remove ALL index markers
+            .replace("_", " ")
+            .title()
+            for p in na_paths
+        ]
 
-        # Check for missing or 'N/A' values
-        for path in na_paths:
-            clean_path = path.replace("[0]", "").replace("_", " ").title()
-            
-            # Check if the value is 'N/A' or empty for fields that are critical
-            if clean_path.lower() in ["graduated: n/a", "github: n/a", "n/a", ""]:
-                category = "Education/Contact Information"
-                field = clean_path
-                if category not in category_groups:
-                    category_groups[category] = []
-                category_groups[category].append(field)
+                # Group by parent category
+        field_counts = defaultdict(int)
+        category_fields = defaultdict(set)
+        standalone_fields = set()
+
+        for path in clean_paths:
+            if '.' in path:
+                category, field = path.split('.', 1)
+                category_fields[category].add(field)
+                field_counts[f"{category}.{field}"] += 1
             else:
-                parts = clean_path.split('.')
-                if len(parts) > 1:
-                    category = parts[0]
-                    field = parts[1]
-                    if category not in category_groups:
-                        category_groups[category] = []
-                    category_groups[category].append(field)
-                else:
-                    category_groups[clean_path] = None
+                standalone_fields.add(path)
+                field_counts[path] += 1
 
-        # Create display items for missing fields
+        # Build display items
         display_items = []
-        for category, fields in category_groups.items():
-            if fields:
-                display_items.append(f"{category}: {', '.join(fields)} Missing")
-            else:
-                display_items.append(category)
+        
+        # Handle categorized fields
+        for category, fields in category_fields.items():
+            display_items.append(f"<li>{category}:")
+            display_items.append("<ul>")
+            for field in fields:
+                count = field_counts[f"{category}.{field}"]
+                count_text = f" ({count} times)" if count > 1 else ""
+                display_items.append(f"<li>{field}{count_text}</li>")
+            display_items.append("</ul></li>")
+        
+        # Handle standalone fields
+        for field in standalone_fields:
+            count = field_counts[field]
+            count_text = f" ({count} times)" if count > 1 else ""
+            display_items.append(f"<li>{field}{count_text}</li>")
 
         # Display missing fields
         st.markdown(f"""
         <div style="margin-top: 20px; padding: 10px; background-color: #ffe6e6; border-radius: 5px;">
             ⚠️ Found {na_count} missing fields:
             <ul style="margin: 8px 0;">
-                {"".join([f"<li>{item}</li>" for item in display_items])}
+                {"".join(display_items)}
             </ul>
         </div>
         """, unsafe_allow_html=True)
@@ -162,5 +171,3 @@ def run():
 #         # Call the run function to execute the app
 if __name__ == "__main__":
         run()
-
-
