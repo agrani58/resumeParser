@@ -27,8 +27,6 @@ def convert_docx_to_pdf(docx_resume_path):
                 pythoncom.CoUninitialize()
 
         return uploaded_resume_path  # Return the path to the converted PDF file
-
-
 def is_valid_date(date_str):
     """Check if date matches mm/yyyy or Month YYYY format"""
     if not isinstance(date_str, str):
@@ -47,29 +45,28 @@ def is_valid_date(date_str):
     
     if date_str in ["Present", "N/A"]:
         return True
-    return False
+    
 def _tracker(data, missing, path="", strict=False):
     if isinstance(data, dict):
         for key, value in data.items():
             new_path = f"{path}.{key}" if path else key
-            # Skip tracking "LinkedIn" if it's already in the missing list
-            if key.lower() == "linkedin" and any("linkedin" in m.lower() for m in missing):
-                continue
             if isinstance(value, (dict, list)):
                 _tracker(value, missing, new_path, strict)
             else:
-                if str(value).strip().upper() in ["N/A", "NA", "NONE", ""]:
+                if key.lower() == "graduation_date" and not is_valid_date(str(value)):
                     missing.append(new_path)
-        # Append path if the dict is empty regardless of strict mode
-        if not data:
+                elif str(value).strip().upper() in ["N/A", "NA", "NONE", ""]:
+                    missing.append(new_path)
+        if not data and path:
             missing.append(path)
     elif isinstance(data, list):
+        if not data and path:
+            missing.append(path)
         for idx, item in enumerate(data):
             new_path = f"{path}[{idx}]" if path else f"[{idx}]"
-            if isinstance(item, str) and item.strip().upper() in ["N/A", "NA"]:
-                missing.append(new_path)
-            elif isinstance(item, (dict, list)):
+            if isinstance(item, (dict, list)):
                 _tracker(item, missing, new_path, strict)
-        # Append path if the list is empty regardless of strict mode
-        if not data:
-            missing.append(path)
+            else:
+                # Check if the item itself is "N/A"
+                if str(item).strip().upper() in ["N/A", "NA", "NONE", ""]:
+                    missing.append(new_path)

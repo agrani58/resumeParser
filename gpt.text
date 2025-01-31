@@ -1,3 +1,4 @@
+after the changes you mentioned 
 import json
 import google.generativeai as genai
 from dotenv import load_dotenv
@@ -53,11 +54,6 @@ def resume_details(resume_text):
     """
     response = model.generate_content(prompt).text
     response_api = response.replace("```json", "").replace("```", "").strip()
-    json_match = re.search(r'\{.*\}', response_api, re.DOTALL)
-    if json_match:
-            response_api = json_match.group(0)
-    else:
-                    raise ValueError("No JSON found in response")
 
     # Convert 'None' to 'N/A' in the response
     response_api = response_api.replace('"None"', '"N/A"').replace("'None'", "'N/A'")
@@ -88,20 +84,17 @@ def resume_details(resume_text):
             parsed_data.setdefault(field, default)
 
         # Ensure Certifications is a list
-        # In resume_details function:
+# Ensure Certifications is a list and replace any invalid entries with "N/A"
         parsed_data.setdefault("Certifications", [])
-        # Ensure it's always a list
-        if isinstance(parsed_data["Certifications"], str):
+        if not isinstance(parsed_data["Certifications"], list):
             parsed_data["Certifications"] = [parsed_data["Certifications"]]
-        # Filter invalid entries
         parsed_data["Certifications"] = [
-            str(c).strip() for c in parsed_data["Certifications"] 
-            if str(c).strip().lower() not in ["", "na", "n/a", "none"]
+            c if c not in [None, "None", "", "N/A"] else "N/A"
+            for c in parsed_data["Certifications"]
         ]
-        # Set to ["N/A"] only if truly empty
         if not parsed_data["Certifications"]:
             parsed_data["Certifications"] = ["N/A"]
-            
+
         for edu in parsed_data.get("Education", []):
             edu.setdefault("Graduation_Date", "N/A")
             current_date = edu["Graduation_Date"]
@@ -171,12 +164,20 @@ def display_parsed_data(parsed_data,missing_fields):
         # Process missing fields into structured format
     structured_missing = defaultdict(lambda: defaultdict(int))
     for path in missing_fields:
-        clean_path = re.sub(r'\[\d+\]', '', path)  # Remove array indices
+        # Preserve array indices for list items
+        clean_path = re.sub(r'\[(\d+)\]', lambda m: f"[{m.group(1)}]", path)  # Keep indices for tracking multiple entries
         parts = clean_path.split('.', 1)
         top_field = parts[0]
+        
         if len(parts) > 1:
             sub_field = parts[1]
-            structured_missing[top_field][sub_field] += 1
+            # Handle array indices in subfields (e.g., Education[0].Degree)
+            if '[' in sub_field:
+                field_parts = sub_field.split('[', 1)
+                main_field = field_parts[0]
+                structured_missing[top_field][main_field] += 1
+            else:
+                structured_missing[top_field][sub_field] += 1
         else:
             structured_missing[top_field]["_top"] += 1
             
@@ -336,30 +337,25 @@ def display_parsed_data(parsed_data,missing_fields):
     degree_missing = 0
     university_missing = 0
 
-# In display_parsed_data() - Education validation section
     if "Education" in structured_missing:
-        grad_missing = structured_missing["Education"].get("Graduation_Date", 0)  # Exact field name
-        degree_missing = structured_missing["Education"].get("Degree", 0)
-        university_missing = structured_missing["Education"].get("University", 0)
+        # Count all instances across array entries
+        grad_missing = sum([v for k,v in structured_missing["Education"].items() if "Graduation_Date" in k])
+        degree_missing = sum([v for k,v in structured_missing["Education"].items() if "Degree" in k])
+        university_missing = sum([v for k,v in structured_missing["Education"].items() if "University" in k])
+
     # Now check each variable
-    if grad_missing > 0:
-        msg = "⚠️ Include Graduation Date"
-        if grad_missing > 1:
-            msg += f" ({grad_missing} entries)"
-        st.markdown(f'<div class="warning-text">{msg}</div>', unsafe_allow_html=True)
-
-    if degree_missing > 0:
-        msg = "⚠️ Include Degree"
-        if degree_missing > 1:
-            msg += f" ({degree_missing} entries)"
-        st.markdown(f'<div class="warning-text">{msg}</div>', unsafe_allow_html=True)
-
-    if university_missing > 0:
-        msg = "⚠️ Include University"
-        if university_missing > 1:
-            msg += f" ({university_missing} entries)"
-        st.markdown(f'<div class="warning-text">{msg}</div>', unsafe_allow_html=True)
-        # Display Experience in Years as a single value
+    total_edu_missing = grad_missing + degree_missing + university_missing
+    if total_edu_missing > 0:
+        st.markdown(f'<div class="warning-text">⚠️ Education Section Missing {total_edu_missing} Entries</div>', unsafe_allow_html=True)
+        if grad_missing > 0:
+            msg = f"• Graduation Date ({grad_missing} missing)"
+            st.markdown(f'<div class="warning-text" style="margin-left: 20px;">{msg}</div>', unsafe_allow_html=True)
+        if degree_missing > 0:
+            msg = f"• Degree ({degree_missing} missing)"
+            st.markdown(f'<div class="warning-text" style="margin-left: 20px;">{msg}</div>', unsafe_allow_html=True)
+        if university_missing > 0:
+            msg = f"• University ({university_missing} missing)"
+            st.markdown(f'<div class="warning-text" style="margin-left: 20px;">{msg}</div>', unsafe_allow_html=True)
     display_in_container("Experience in Years", Professional_Experience_in_Years)
     if "Professional_Experience_in_Years" in structured_missing:
         if structured_missing["Professional_Experience_in_Years"].get("_top", 0) > 0:
@@ -419,3 +415,332 @@ def display_parsed_data(parsed_data,missing_fields):
     # Display Recommended Additional Skills as a list
     display_in_container(f"Recommended Additional Skills for {Suggested_Resume_Category}", Recommended_Additional_Skills)
     st.caption("Adding these skills to resume will boost your chance of getting a job")
+
+output
+Resume Analysis
+Hi Bright Kyeremeh! 😊
+Your Basic Information
+Email: mrbriit@gmail.com
+
+Contacts: +919467891831
+
+Address: Pune, India
+
+LinkedIn: https://www.linkedin.com/in/mrbriit/
+
+GitHub: N/A
+
+⚠️ Include GitHub Profile URL
+Suggested_Resume_Category
+Data Scientist
+Profile Applied For
+Data Scientist
+Highest Education
+MBA Data Science
+Education
+MBA Data Science from MIT ADT University (Graduated: N/A)
+Bachelor Of Education(Mathematics) from University Of Cape Coast (Graduated: N/A)
+Experience in Years
+5+
+Skills
+Data Science
+Python
+Machine Learning
+Deep Learning
+Artificial Intelligence
+Chatbot Design
+Natural Language Processing
+Computer Vision
+Statistics
+SQL
+Excel
+Web Scraping
+Data Analysis
+Data Mining
+Research Methodologies
+Report Writing
+Data Visualization
+TensorFlow
+Pandas
+Numpy
+Seaborn
+Selenium
+Beautiful Soup
+Scrapy
+Flask
+MySQL
+AWS
+Google Cloud
+Work Experience
+Data And Research Assistant at Accreditation Council for Business Schools and Programs(ACBSP) (Jun 2015 to Jul 2017)
+Projects:
+N/A
+Product Manager Intern at Synacor (Aug 2020 to Jan 2021)
+Projects:
+N/A: Helped to integrate A.I. in existing products
+Technology Consultant Intern at Deloitte (May 2020 to Jul 2020)
+Projects:
+N/A: Leveraged large datasets from various sources at Deloitte, use the skills of Data Analysis, Natural Language Processing and Visualisation to analyze the range of technologies currently being used across the financial services sector and take into consideration emerging technologies for implementing an online banking solution.
+Go-To-Market Strategist Intern at Microsoft (Mar 2020 to May 2020)
+Projects:
+N/A: Analysing the economics of a product using strategic Go-To-Market strategy to achieve a high product market fit.
+Data Scientist Intern at ANZ (Jan 2020 to Mar 2020)
+Projects:
+N/A: Leverage large dataset of over 100 customers over a period of time: analyze, visualise and build regression models to help predict behaviour of future customers regarding purchases, recurring transactions, and salary transactions.
+Founder/Information Technologist at Total Data Science (Aug 2020 to Present)
+Projects:
+N/A
+UDEMY Data Science Instructor at Udemy (Aug 2020 to Present)
+Projects:
+N/A
+Certifications
+IBM Certified Data Scientist
+Delhi Institute Of Digital Marketing: Professional Certificate in Social Media & Digital Marketing
+FutureLearn Certificate in Research Methodology
+FutureLearn Certificate in Developing Research Report
+FutureLearn Certificate in Writing a Research Proposal
+Certified Ministry of Education, Ghana, High School Mathematics Instructor
+Coursera: Data Structures & Algorithm, Operating System Design
+Achievements
+Top 3 Percentile of the class (MIT ADT University)
+GPA: 8.35/10 (MIT ADT University)
+Top 5 Percentile of the class (University Of Cape Coast)
+GPA: 3.2/4.0 (University Of Cape Coast)
+10 Courses | 2000+ Global Student base (Udemy)
+Recommended Additional Skills for Data Scientist
+Cloud Computing (AWS, Azure, GCP)
+Big Data Technologies (Spark, Hadoop)
+Database Management (MongoDB, PostgreSQL)
+Model Deployment
+Data Storytelling
+Adding these skills to resume will boost your chance of getting a job
+
+⚠️ Found 10 missing fields.
+the markdown for other feilds such as education dissapeared.
+home.py
+from libraries import *
+from ats import convert_docx_to_pdf
+import streamlit_authenticator as stauth
+from PyPDF2 import PdfReader
+
+from collections import defaultdict 
+# In home.py - Update import statement
+from json_file import resume_details, display_parsed_data, count_na 
+from Courses import ds_course,web_course,android_course,ios_course,uiux_course,resume_videos,interview_videos
+
+uploaded_resume_dir = os.path.abspath('./Uploaded_Resumes')
+    # docx_resume_path = os.path.abspath('./Uploaded_docx_resume') # The path of the uploaded file (DOCX or PDF)
+    # Ensure the directory exists
+if not os.path.exists(uploaded_resume_dir):
+        os.makedirs(uploaded_resume_dir)
+
+    # Function to display the resume PDF
+def show_resume(uploaded_resume_path):
+    try:
+        with open(uploaded_resume_path, "rb") as f:
+            base64_pdf = base64.b64encode(f.read()).decode('utf-8')
+            pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" width="700" height="1000" type="application/pdf"></iframe>'
+            st.markdown(pdf_display, unsafe_allow_html=True)
+    except Exception as e:
+        st.error(f"Error displaying resume: {e}")
+        
+        
+def extract_text_from_pdf(uploaded_resume_path):
+    try:
+        with open(uploaded_resume_path, "rb") as file:
+            reader = PdfReader(file)
+            text = ""
+            for page in reader.pages:
+                text += page.extract_text() 
+                #get resume details from model
+            response=resume_details(text)
+            return response
+    except Exception as e:
+        st.error(f"Error extracting text from PDF: {e}")
+        return None
+def course_recommender(course_list):
+    st.subheader("Courses and  Certificates Recommendation")
+    c=0 
+    rec_course=[]
+    no_of_reco=st.slider("choose no of courses you want to be recommended:", 1,5,10)
+    random.shuffle(course_list)
+    for c_name,c_link in course_list:
+        c+=1
+        st.markdown(f"({c}) [{c_name}]({c_link})")
+        rec_course.append(c_name)
+        if c==no_of_reco:
+            break
+        
+        return rec_course
+
+def run():
+    
+    components()
+
+        
+    st.markdown(
+            '''<div style='margin-top: 20px; text-align: center;'>
+                <h5 style='color: #1d3557;'>Upload your Resume</h5>
+            </div>''',
+            unsafe_allow_html=True
+        )
+
+    # Initialize session state
+    if 'prev_upload' not in st.session_state:
+        st.session_state.update({
+            'prev_upload': None,
+            'parsed_data': None,
+            'na_count': 0
+        })
+
+    file_uploaded = st.file_uploader(" ", type=["pdf", "docx"])
+    
+    # Detect new upload and reset state
+    if file_uploaded != st.session_state.prev_upload:
+        st.session_state.prev_upload = file_uploaded
+        st.session_state.parsed_data = None
+        st.session_state.na_count = 0
+        st.rerun()  # Clear previous outputs
+
+        
+    if file_uploaded is not None:
+        # Save the uploaded file to the appropriate directory
+        file_extension = file_uploaded.name.split('.')[-1].lower()
+        placeholder = st.empty()
+        # Determine the path for the file
+        uploaded_resume_path = os.path.join(uploaded_resume_dir, file_uploaded.name)
+            # Save the PDF directly
+        with open(uploaded_resume_path, "wb") as f:
+            f.write(file_uploaded.getbuffer())
+            
+        if file_extension == "pdf":
+            placeholder.success("Resume uploaded successfully!")
+            time.sleep(4)
+            placeholder.empty()
+            show_resume(uploaded_resume_path)
+        elif file_extension == "docx":
+            # Save the DOCX file temporarily, convert it to PDF, and save the PDF
+            converted_pdf_path = convert_docx_to_pdf(uploaded_resume_path)
+            if converted_pdf_path:
+                uploaded_resume_path = converted_pdf_path  # Update the path to the converted PDF
+                st.success("DOCX converted to PDF successfully!")
+            show_resume(uploaded_resume_path)
+        else:
+                st.error("DOCX conversion failed.") 
+                
+
+        with st.spinner("Extracting and parsing resume..."):
+            resume_text = extract_text_from_pdf(uploaded_resume_path)
+            if resume_text:
+                st.session_state.parsed_data = resume_details(resume_text)
+        if st.session_state.parsed_data:
+            na_count, na_paths = count_na(st.session_state.parsed_data)
+            display_parsed_data(st.session_state.parsed_data, missing_fields=na_paths)
+            # Remove the old missing fields summary code here
+            
+        na_count, na_paths = count_na(st.session_state.parsed_data)
+                        
+        # In display_parsed_data() function
+        clean_paths = [
+            re.sub(r'\[\d+\]', '', p)  # Remove array indices
+            .title()  # Remove .replace("_", " ")
+            for p in na_paths
+        ]
+
+                # Group by parent category
+        field_counts = defaultdict(int)
+        category_fields = defaultdict(set)
+        standalone_fields = set()
+
+        for path in clean_paths:
+            if '.' in path:
+                category, field = path.split('.', 1)
+                category_fields[category].add(field)
+                field_counts[f"{category}.{field}"] += 1
+            else:
+                standalone_fields.add(path)
+                field_counts[path] += 1
+
+        # Build display items
+
+
+        # In home.py, after counting NA
+        st.markdown(f"""
+            <div style="margin-top: 20px; padding: 10px; background-color: #ffe6e6; border-radius: 25px; text-align: center;">
+                ⚠️ Found {na_count} missing fields.
+            </div>
+        """, unsafe_allow_html=True)
+
+#         # Call the run function to execute the app
+if __name__ == "__main__":
+        run()
+ats.py
+from libraries import *
+def convert_docx_to_pdf(docx_resume_path):
+        
+    if docx_resume_path.endswith(".docx"): 
+        try:
+                # Initialize COM threading model
+            pythoncom.CoInitialize()  # COM allows different software components (written in different languages) to communicate with each other.
+
+                # Define paths for DOCX and the output PDF
+            uploaded_resume_path = os.path.splitext(docx_resume_path)[0] + ".pdf"  
+
+                # Initialize Word COM object
+            word = comtypes.client.CreateObject("Word.Application")
+            word.Visible = False  # Run Word in the background
+
+                # Open DOCX and save as PDF
+            in_file = word.Documents.Open(docx_resume_path)
+            in_file.SaveAs(uploaded_resume_path, FileFormat=17)  # PDF format constant
+            in_file.Close()
+            word.Quit()
+
+        except Exception as e:
+                st.error(f"An error occurred during conversion: {e}")
+                return None
+        finally:
+                # Uninitialize COM after usage
+                pythoncom.CoUninitialize()
+
+        return uploaded_resume_path  # Return the path to the converted PDF file
+def is_valid_date(date_str):
+    """Check if date matches mm/yyyy or Month YYYY format"""
+    if not isinstance(date_str, str):
+        return False
+    # Check for Month YYYY format (e.g., "May 2023")
+    if len(date_str.split()) == 2:
+        month, year = date_str.split()
+        if month.lower() in ["january", "february", "march", "april", "may", "june",
+                        "july", "august", "september", "october", "november", "december"]:
+            return year.isdigit() and len(year) == 4
+        
+    # Check for mm/yyyy format (e.g., "05/2023")
+    if len(date_str.split('/')) == 2:
+        month, year = date_str.split('/')
+        return month.isdigit() and 1 <= int(month) <= 12 and year.isdigit() and len(year) == 4
+    
+    if date_str in ["Present", "N/A"]:
+        return True
+    
+def _tracker(data, missing, path="", strict=False):
+    # Keep existing logic but improve value validation
+    if isinstance(data, dict):
+        for key, value in data.items():
+            new_path = f"{path}.{key}" if path else key
+            if isinstance(value, (dict, list)):
+                _tracker(value, missing, new_path, strict)
+            else:
+                # Enhanced validation for date-like fields
+                if key.lower() == "graduation_date" and not is_valid_date(str(value)):
+                    missing.append(new_path)
+                elif str(value).strip().upper() in ["N/A", "NA", "NONE", ""]:
+                    missing.append(new_path)
+        if not data and path:
+            missing.append(path)
+    elif isinstance(data, list):
+        if not data and path:
+            missing.append(path)
+        for idx, item in enumerate(data):
+            new_path = f"{path}[{idx}]" if path else f"[{idx}]"
+            _tracker(item, missing, new_path, strict)

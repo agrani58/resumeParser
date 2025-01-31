@@ -114,14 +114,16 @@ def run():
             if resume_text:
                 st.session_state.parsed_data = resume_details(resume_text)
         if st.session_state.parsed_data:
-            display_parsed_data(st.session_state.parsed_data)
+            na_count, na_paths = count_na(st.session_state.parsed_data)
+            display_parsed_data(st.session_state.parsed_data, missing_fields=na_paths)
+            # Remove the old missing fields summary code here
             
         na_count, na_paths = count_na(st.session_state.parsed_data)
                         
+        # In display_parsed_data() function
         clean_paths = [
-            re.sub(r'\[\d+\]', '', p)  # Remove ALL index markers
-            .replace("_", " ")
-            .title()
+            re.sub(r'\[\d+\]', '', p)  # Remove array indices
+            .title()  # Remove .replace("_", " ")
             for p in na_paths
         ]
 
@@ -138,34 +140,18 @@ def run():
             else:
                 standalone_fields.add(path)
                 field_counts[path] += 1
+        st.markdown(
+            '''<div style='margin-top: 20px; text-align: center;'>
+                <h5 style='color: #1d3557;'>Resume Tips & Tricks</h5>
+            </div>''',
+            unsafe_allow_html=True
+        )
 
-        # Build display items
-        display_items = []
-        
-        # Handle categorized fields
-        for category, fields in category_fields.items():
-            display_items.append(f"<li>{category}:")
-            display_items.append("<ul>")
-            for field in fields:
-                count = field_counts[f"{category}.{field}"]
-                count_text = f" ({count} times)" if count > 1 else ""
-                display_items.append(f"<li>{field}{count_text}</li>")
-            display_items.append("</ul></li>")
-        
-        # Handle standalone fields
-        for field in standalone_fields:
-            count = field_counts[field]
-            count_text = f" ({count} times)" if count > 1 else ""
-            display_items.append(f"<li>{field}{count_text}</li>")
-
-        # Display missing fields
+        # In home.py, after counting NA
         st.markdown(f"""
-        <div style="margin-top: 20px; padding: 10px; background-color: #ffe6e6; border-radius: 5px;">
-            ⚠️ Found {na_count} missing fields:
-            <ul style="margin: 8px 0;">
-                {"".join(display_items)}
-            </ul>
-        </div>
+            <div style="margin-top: 20px; padding: 10px; background-color: #ffe6e6; border-radius: 25px; text-align: center;">
+                ⚠️ Found {na_count} missing fields. Include this field to make your resume ATS compatible.
+            </div>
         """, unsafe_allow_html=True)
 
 #         # Call the run function to execute the app
