@@ -1,21 +1,23 @@
-from libraries import *
-from ats import convert_docx_to_pdf
-import streamlit_authenticator as stauth
+import os
+import base64
+import time
+import streamlit as st
 from PyPDF2 import PdfReader
+import accounts
+from components import components
+from config import cookie_controller
+from connection import delete_session_token
+from json_file import resume_details, display_parsed_data, count_na
+from ats import convert_docx_to_pdf
 
-from collections import defaultdict 
-# In home.py - Update import statement
-from json_file import resume_details, display_parsed_data, count_na 
-from Courses import ds_course,web_course,android_course,ios_course,uiux_course,resume_videos,interview_videos
+def get_user_upload_dir():
+    """Get the user-specific upload directory."""
+    if 'email' in st.session_state and st.session_state.email:
+        return os.path.join('./Uploaded_Resumes', st.session_state.email)
+    return None
 
-uploaded_resume_dir = os.path.abspath('./Uploaded_Resumes')
-    # docx_resume_path = os.path.abspath('./Uploaded_docx_resume') # The path of the uploaded file (DOCX or PDF)
-    # Ensure the directory exists
-if not os.path.exists(uploaded_resume_dir):
-        os.makedirs(uploaded_resume_dir)
-
-    # Function to display the resume PDF
 def show_resume(uploaded_resume_path):
+    """Display the uploaded resume PDF."""
     try:
         with open(uploaded_resume_path, "rb") as f:
             base64_pdf = base64.b64encode(f.read()).decode('utf-8')
@@ -23,137 +25,134 @@ def show_resume(uploaded_resume_path):
             st.markdown(pdf_display, unsafe_allow_html=True)
     except Exception as e:
         st.error(f"Error displaying resume: {e}")
-        
-        
+
 def extract_text_from_pdf(uploaded_resume_path):
+    """Extract text from the uploaded resume."""
     try:
         with open(uploaded_resume_path, "rb") as file:
             reader = PdfReader(file)
             text = ""
             for page in reader.pages:
-                text += page.extract_text() 
-                #get resume details from model
-            response=resume_details(text)
-            return response
+                text += page.extract_text()
+            return resume_details(text)
     except Exception as e:
         st.error(f"Error extracting text from PDF: {e}")
         return None
-def course_recommender(course_list):
-    st.subheader("Courses and  Certificates Recommendation")
-    c=0 
-    rec_course=[]
-    no_of_reco=st.slider("choose no of courses you want to be recommended:", 1,5,10)
-    random.shuffle(course_list)
-    for c_name,c_link in course_list:
-        c+=1
-        st.markdown(f"({c}) [{c_name}]({c_link})")
-        rec_course.append(c_name)
-        if c==no_of_reco:
-            break
-        
-        return rec_course
+
+def clear_user_files():
+    """Clear uploaded files on logout."""
+    user_dir = get_user_upload_dir()
+    if user_dir and os.path.exists(user_dir):
+        for f in os.listdir(user_dir):
+            os.remove(os.path.join(user_dir, f))
+        os.rmdir(user_dir)
 
 def run():
-    
     components()
-
-        
-    st.markdown(
-            '''<div style='margin-top: 20px; text-align: center;'>
-                <h5 style='color: #1d3557;'>Upload your Resume</h5>
-            </div>''',
-            unsafe_allow_html=True
-        )
-
-    # Initialize session state
-    if 'prev_upload' not in st.session_state:
-        st.session_state.update({
-            'prev_upload': None,
-            'parsed_data': None,
-            'na_count': 0
-        })
-
-    file_uploaded = st.file_uploader(" ", type=["pdf", "docx"])
     
-    # Detect new upload and reset state
-    if file_uploaded != st.session_state.prev_upload:
-        st.session_state.prev_upload = file_uploaded
+    # Initialize session state for file and analysis
+    st.session_state.setdefault('uploaded_file', None)
+    st.session_state.setdefault('parsed_data', None)
+    st.session_state.setdefault('na_count', 0)
+    st.session_state.setdefault('resume_path', None)  # Add this to store the file path
+
+    # Check authentication
+    if not st.session_state.get('authenticated'):
+        st.warning("Please login first!")
+        accounts.run()
+        return
+        
+    user_dir = get_user_upload_dir()
+    if not user_dir:
+        st.error("User directory not available. Please log in again.")
+        return
+
+    # Ensure directory exists
+    if not os.path.exists(user_dir):
+        os.makedirs(user_dir)
+
+    # Handle logout
+    if st.sidebar.button("Logout"):
+        clear_user_files()
+        if 'uploaded_file' in st.session_state:
+            del st.session_state.uploaded_file
+        if 'parsed_data' in st.session_state:
+            del st.session_state.parsed_data
+        if 'na_count' in st.session_state:
+            del st.session_state.na_count
+        if 'resume_path' in st.session_state:
+            del st.session_state.resume_path
+        session_token = cookie_controller.get("session_token")
+        if session_token:
+            delete_session_token(session_token)
+            cookie_controller.set("session_token", "", max_age=0)
+        st.session_state.authenticated = False
+        st.session_state.pop("email", None)
+        st.rerun()
+
+    # Main UI
+    st.markdown(
+        '''<div style='margin-top: 20px; text-align: center;'>
+            <h5 style='color: #1d3557;'>Upload your Resume</h5>
+        </div>''',
+        unsafe_allow_html=True
+    )
+
+    # File uploader with unique key
+    file_uploaded = st.file_uploader(" ", type=["pdf", "docx"], key="persistent_uploader")
+    placeholder = st.empty()
+    # Process new upload
+    if file_uploaded and (file_uploaded != st.session_state.uploaded_file):
+        st.session_state.uploaded_file = file_uploaded
         st.session_state.parsed_data = None
         st.session_state.na_count = 0
-        st.rerun()  # Clear previous outputs
 
-        
-    if file_uploaded is not None:
-        # Save the uploaded file to the appropriate directory
+        # Save the file
         file_extension = file_uploaded.name.split('.')[-1].lower()
-        placeholder = st.empty()
-        # Determine the path for the file
-        uploaded_resume_path = os.path.join(uploaded_resume_dir, file_uploaded.name)
-            # Save the PDF directly
-        with open(uploaded_resume_path, "wb") as f:
-            f.write(file_uploaded.getbuffer())
-            
-        if file_extension == "pdf":
-            placeholder.success("Resume uploaded successfully!")
-            time.sleep(4)
-            placeholder.empty()
-            show_resume(uploaded_resume_path)
-        elif file_extension == "docx":
-            # Save the DOCX file temporarily, convert it to PDF, and save the PDF
+        uploaded_resume_path = os.path.join(user_dir, file_uploaded.name)
+        
+        if not os.path.exists(uploaded_resume_path):
+            with open(uploaded_resume_path, "wb") as f:
+                f.write(file_uploaded.getbuffer())
+        placeholder.success("Resume uploaded successfully!")
+        time.sleep(4)
+        # Handle DOCX conversion
+        if file_extension == "docx":
             converted_pdf_path = convert_docx_to_pdf(uploaded_resume_path)
             if converted_pdf_path:
-                uploaded_resume_path = converted_pdf_path  # Update the path to the converted PDF
+                uploaded_resume_path = converted_pdf_path
                 st.success("DOCX converted to PDF successfully!")
-            show_resume(uploaded_resume_path)
-        else:
-                st.error("DOCX conversion failed.") 
-                
+            else:
+                st.error("DOCX conversion failed.")
 
+        # Store the file path in session state
+        st.session_state.resume_path = uploaded_resume_path
+
+        # Process text extraction
         with st.spinner("Extracting and parsing resume..."):
             resume_text = extract_text_from_pdf(uploaded_resume_path)
             if resume_text:
                 st.session_state.parsed_data = resume_details(resume_text)
-        if st.session_state.parsed_data:
+
+    # Show existing resume and analysis if available
+    if st.session_state.get('resume_path') and os.path.exists(st.session_state.resume_path):
+        show_resume(st.session_state.resume_path)
+
+        if st.session_state.get('parsed_data'):
             na_count, na_paths = count_na(st.session_state.parsed_data)
+            st.session_state.na_count = na_count
             display_parsed_data(st.session_state.parsed_data, missing_fields=na_paths)
-            # Remove the old missing fields summary code here
+
+            # Display recommendations
+            st.markdown(
+                '''<div style='margin-top: 20px; text-align: center;'>
+                    <h5 style='color: #1d3557;'>Resume Tips & Tricks</h5>
+                </div>''',
+                unsafe_allow_html=True
+            )
             
-        na_count, na_paths = count_na(st.session_state.parsed_data)
-                        
-        # In display_parsed_data() function
-        clean_paths = [
-            re.sub(r'\[\d+\]', '', p)  # Remove array indices
-            .title()  # Remove .replace("_", " ")
-            for p in na_paths
-        ]
-
-                # Group by parent category
-        field_counts = defaultdict(int)
-        category_fields = defaultdict(set)
-        standalone_fields = set()
-
-        for path in clean_paths:
-            if '.' in path:
-                category, field = path.split('.', 1)
-                category_fields[category].add(field)
-                field_counts[f"{category}.{field}"] += 1
-            else:
-                standalone_fields.add(path)
-                field_counts[path] += 1
-        st.markdown(
-            '''<div style='margin-top: 20px; text-align: center;'>
-                <h5 style='color: #1d3557;'>Resume Tips & Tricks</h5>
-            </div>''',
-            unsafe_allow_html=True
-        )
-
-        # In home.py, after counting NA
-        st.markdown(f"""
-            <div style="margin-top: 20px; padding: 10px; background-color: #ffe6e6; border-radius: 25px; text-align: center;">
-                ⚠️ Found {na_count} missing fields. Include this field to make your resume ATS compatible.
-            </div>
-        """, unsafe_allow_html=True)
-
-#         # Call the run function to execute the app
-if __name__ == "__main__":
-        run()
+            st.markdown(f"""
+                <div style="margin-top: 20px; padding: 10px; background-color: #ffe6e6; border-radius: 25px; text-align: center;">
+                    ⚠️ Found {st.session_state.na_count} missing fields. Include these to make your resume ATS compatible.
+                </div>
+            """, unsafe_allow_html=True)

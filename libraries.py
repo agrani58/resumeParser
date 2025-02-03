@@ -1,7 +1,7 @@
 import streamlit as st
 import base64, random 
 import time,datetime
-import mysql.connector
+
 import nltk
 import os
 from io import BytesIO
@@ -31,3 +31,8 @@ from pdfminer.pdfpage import PDFPage
 import io,random
 from Courses import ds_course, web_course,android_course, ios_course, uiux_course
 from PIL import Image
+
+
+# Add these required imports
+import mysql.connector
+import streamlit_authenticator as stauth

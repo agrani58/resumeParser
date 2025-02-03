@@ -1,48 +1,59 @@
-
-import streamlit as st  # Import Streamlit right after setting page config
+import streamlit as st
+from config import cookie_controller
+# Set page config FIRST
 st.set_page_config(
-    page_title="Resume Parser",
-    page_icon='Logo/logo.png',
+    page_title="Resume Analyzer",
+    page_icon="📄",
+    initial_sidebar_state="expanded"
 )
 
-from libraries import *
+# Initialize session state immediately after page config
+if 'authenticated' not in st.session_state:
+    st.session_state.authenticated = False
+if 'email' not in st.session_state:
+    st.session_state.email = None
+
+# Now import other modules
 from streamlit_option_menu import option_menu
-import accounts, home
+from accounts import check_session, run as accounts_run
+from home import run as home_run
 
-
+# Check session state
+check_session()
 class MultiApp:
-    def __init__(self):
-        self.apps = []
-
-    def add_app(self, title, function):
-        self.apps.append({
-            "title": title,
-            "function": function
-        })
-
     def run(self):
-        # Sidebar navigation menu
         with st.sidebar:
-            app = option_menu(
-                menu_title=None,  # No title for the sidebar
-                options=['Account', 'Home'],  # Menu options
-                default_index=0,  # Default selected option
-                styles={
-                    "container": { "background-color": "white"},
-                    "nav-link": {"font-size": "15px", "text-align": "left", "margin": "0px", "--hover-color": "#f1faee"},
-                    "nav-link-selected": {"background-color": "#457b9d"},
-                }
-            )
+            if st.session_state.authenticated:
+                # Use st.query_params for URL parameter handling
+                params = st.query_params
+                initial_index = 0 if params.get("page", ["Home"])[0] == "Home" else 1
+                
+                app = option_menu(
+                    menu_title=None,
+                    options=['Home', 'Account'],
+                    icons=['house', 'person-circle'],
+                    default_index=initial_index,
+                    key="main_menu",
+                    styles={
+                        "container": {"background-color": "white"},
+                        "nav-link": {"font-size": "15px", "text-align": "left", "margin": "0px", "--hover-color": "#f1faee"},
+                        "nav-link-selected": {"background-color": "#457b9d"},
+                    }
+                )
+                
+                # Update URL param using st.query_params
+                if app == "Home":
+                    st.query_params["page"] = "Home"
+                else:
+                    st.query_params["page"] = "Account"
+            else:
+                app = 'Account'
 
-        # Navigate to the selected app
         if app == 'Account':
-            accounts.run() 
-        elif app == 'Home':
-            home.run()
-
-multi_app = MultiApp()
-multi_app.add_app("Account", accounts.run)
-multi_app.add_app("Home", home.run)
-
-# Run the app
-multi_app.run()
+            accounts_run()
+        elif app == 'Home' and st.session_state.authenticated:
+            home_run()
+# Initialize and run the app
+if __name__ == "__main__":
+    app = MultiApp()
+    app.run()

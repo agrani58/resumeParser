@@ -41,11 +41,9 @@ def resume_details(resume_text):
             - Project_Title
             - Description
     - Certifications
-
     - Achievements (List of notable achievements)
-
-    - Suggested_Resume_Category (infer the most relevant job category based on skills, certifications, and work experience; do not use 'N/A')
-    - Recommended_Additional_Skills (provide 3-5 concrete skills relevant to the Suggested_Resume_Category; do not use 'N/A')
+    - Suggested_Resume_Category (infer the most relevant job category based on skills, certifications, and work experience)
+    - Recommended_Additional_Skills (provide 3-5 concrete skills relevant to the Suggested_Resume_Category)
     The resume text:
     {resume_text}
 
@@ -96,7 +94,7 @@ def resume_details(resume_text):
         # Filter invalid entries
         parsed_data["Certifications"] = [
             str(c).strip() for c in parsed_data["Certifications"] 
-            if str(c).strip().lower() not in ["", "na", "n/a", "none"]
+            if str(c).strip().lower() not in ["", "n/a", "none"]
         ]
         # Set to ["N/A"] only if truly empty
         if not parsed_data["Certifications"]:
