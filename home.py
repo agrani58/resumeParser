@@ -21,11 +21,15 @@ def show_resume(uploaded_resume_path):
     try:
         with open(uploaded_resume_path, "rb") as f:
             base64_pdf = base64.b64encode(f.read()).decode('utf-8')
-            pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" width="700" height="1000" type="application/pdf"></iframe>'
+            # Use CSS to make the iframe responsive
+            pdf_display = f'''
+                <div style="width: 100%; height: 700px; overflow: auto;">
+                    <iframe src="data:application/pdf;base64,{base64_pdf}" width="100%" height="100%" style="border: none;"></iframe>
+                </div>
+            '''
             st.markdown(pdf_display, unsafe_allow_html=True)
     except Exception as e:
         st.error(f"Error displaying resume: {e}")
-
 def extract_text_from_pdf(uploaded_resume_path):
     """Extract text from the uploaded resume."""
     try:
@@ -63,6 +67,9 @@ def run():
         return
         
     user_dir = get_user_upload_dir()
+        # Ensure directory exists
+    if not os.path.exists(user_dir):
+        os.makedirs(user_dir)
     if not user_dir:
         st.error("User directory not available. Please log in again.")
         return
@@ -89,55 +96,59 @@ def run():
         st.session_state.authenticated = False
         st.session_state.pop("email", None)
         st.rerun()
-
-    # Main UI
-    st.markdown(
-        '''<div style='margin-top: 20px; text-align: center;'>
-            <h5 style='color: #1d3557;'>Upload your Resume</h5>
-        </div>''',
-        unsafe_allow_html=True
-    )
-
-    # File uploader with unique key
-    file_uploaded = st.file_uploader(" ", type=["pdf", "docx"], key="persistent_uploader")
-    placeholder = st.empty()
-    # Process new upload
-    if file_uploaded and (file_uploaded != st.session_state.uploaded_file):
-        st.session_state.uploaded_file = file_uploaded
-        st.session_state.parsed_data = None
-        st.session_state.na_count = 0
-
-        # Save the file
-        file_extension = file_uploaded.name.split('.')[-1].lower()
-        uploaded_resume_path = os.path.join(user_dir, file_uploaded.name)
         
-        if not os.path.exists(uploaded_resume_path):
-            with open(uploaded_resume_path, "wb") as f:
-                f.write(file_uploaded.getbuffer())
-        placeholder.success("Resume uploaded successfully!")
-        time.sleep(4)
-        # Handle DOCX conversion
-        if file_extension == "docx":
-            converted_pdf_path = convert_docx_to_pdf(uploaded_resume_path)
-            if converted_pdf_path:
-                uploaded_resume_path = converted_pdf_path
-                st.success("DOCX converted to PDF successfully!")
-            else:
-                st.error("DOCX conversion failed.")
+        
+    col1, col2,col3 = st.columns([1.4,0.002,1.4])  # Adjusted ratios for better responsiveness
 
-        # Store the file path in session state
-        st.session_state.resume_path = uploaded_resume_path
+    # Main UI   
+    with col1:
+        st.markdown(
+            '''<div style='margin-top:60px; text-align: center;'>
+                <h4 style='color: #1d3557;'>Upload Your Resume</h4>
+            </div>''',
+            unsafe_allow_html=True
+        )
 
-        # Process text extraction
-        with st.spinner("Extracting and parsing resume..."):
-            resume_text = extract_text_from_pdf(uploaded_resume_path)
-            if resume_text:
-                st.session_state.parsed_data = resume_details(resume_text)
+        # File uploader with unique key
+        file_uploaded = st.file_uploader(" ", type=["pdf", "docx"], key="persistent_uploader")
+        placeholder = st.empty()
+    # Process new upload
+        if file_uploaded and (file_uploaded != st.session_state.uploaded_file):
+            st.session_state.uploaded_file = file_uploaded
+            st.session_state.parsed_data = None
+            st.session_state.na_count = 0
 
-    # Show existing resume and analysis if available
-    if st.session_state.get('resume_path') and os.path.exists(st.session_state.resume_path):
-        show_resume(st.session_state.resume_path)
+            # Save the file
+            file_extension = file_uploaded.name.split('.')[-1].lower()
+            uploaded_resume_path = os.path.join(user_dir, file_uploaded.name)
+            
+            if not os.path.exists(uploaded_resume_path):
+                with open(uploaded_resume_path, "wb") as f:
+                    f.write(file_uploaded.getbuffer())
+            placeholder.success("Resume uploaded successfully!")
+            time.sleep(4)
+            # Handle DOCX conversion
+            if file_extension == "docx":
+                converted_pdf_path = convert_docx_to_pdf(uploaded_resume_path)
+                if converted_pdf_path:
+                    uploaded_resume_path = converted_pdf_path
+                    st.success("DOCX converted to PDF successfully!")
+                else:
+                    st.error("DOCX conversion failed.")
 
+            # Store the file path in session state
+            st.session_state.resume_path = uploaded_resume_path
+
+            # Process text extraction
+            with st.spinner("Extracting and parsing resume..."):
+                resume_text = extract_text_from_pdf(uploaded_resume_path)
+                if resume_text:
+                    st.session_state.parsed_data = resume_details(resume_text)
+
+        # Show existing resume and analysis if available
+        if st.session_state.get('resume_path') and os.path.exists(st.session_state.resume_path):
+            show_resume(st.session_state.resume_path)
+    with col3:
         if st.session_state.get('parsed_data'):
             na_count, na_paths = count_na(st.session_state.parsed_data)
             st.session_state.na_count = na_count
@@ -156,3 +167,4 @@ def run():
                     ⚠️ Found {st.session_state.na_count} missing fields. Include these to make your resume ATS compatible.
                 </div>
             """, unsafe_allow_html=True)
+    

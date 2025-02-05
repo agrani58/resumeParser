@@ -1,11 +1,26 @@
 import streamlit as st
-from config import cookie_controller
+
 # Set page config FIRST
 st.set_page_config(
     page_title="Resume Analyzer",
     page_icon="📄",
+    layout="wide",
     initial_sidebar_state="expanded"
 )
+import accounts
+from config import cookie_controller
+# IS_DEV = False  # Set to False in production
+
+# # Set development mode state FIRST
+# if IS_DEV:
+#     st.session_state.setdefault('authenticated', False)
+#     st.session_state.setdefault('email', 'dev@example.com')
+#     st.session_state.setdefault('username', 'Developer')
+#     cookie_controller.set("session_token", "dev_token", max_age=60*60*24) 
+
+# if not IS_DEV and not st.session_state.authenticated:
+#     st.warning("Please login first!")
+#     accounts.run()
 
 # Initialize session state immediately after page config
 if 'authenticated' not in st.session_state:

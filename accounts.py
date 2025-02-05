@@ -18,18 +18,28 @@ import secrets
 def is_valid_email(email):
     return re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email)
 def is_password_strong(password):
-    return (len(password) >= 8 and 
-            any(c.isdigit() for c in password) and 
-            any(c.isalpha() for c in password) and 
+    return (len(password) >= 3 and 
+            # any(c.isdigit() for c in password) and 
+            # any(c.isalpha() for c in password) and 
             any(c in "!@#$%^&*()-_" for c in password))
 
+
 def check_session():
-    # Initialize cookies if they don't exist
+    # DEVELOPMENT BYPASS ==============================================
+    if cookie_controller.get("session_token") == "dev_token":
+        st.session_state.update({
+            'authenticated': False,
+            'email': 'dev@example.com',
+            'username': 'Developer'
+        })
+        return True
+    # ================================================================
+
+    # Original session checking logic
     if not hasattr(cookie_controller, '_CookieController__cookies') or cookie_controller._CookieController__cookies is None:
         st.session_state.authenticated = False
         return False
 
-    # Check for session token
     session_token = cookie_controller.get("session_token")
     if not session_token:
         st.session_state.authenticated = False
@@ -64,12 +74,28 @@ def login(email, password):
     user_key = f"user_{st.session_state.email}"
     if user_key in st.session_state:
         del st.session_state[user_key]
-        
-    if not (verification := verify_user(email, password)).get('status'):
+    
+    # Ensure verification is always a dictionary
+    verification = verify_user(email, password)
+    if not verification or not isinstance(verification, dict) or not verification.get('status'):
         return st.error("Login failed. Check your credentials.")
     
     session_token = secrets.token_urlsafe(32)
     expires_at = datetime.now(timezone.utc) + timedelta(days=7)  # Now works properly
+    
+    if create_session_token(email, session_token, expires_at):
+        cookie_controller.set("session_token", session_token, 
+                            max_age=int((expires_at - datetime.now(timezone.utc)).total_seconds()))
+        st.session_state.update({
+            'authenticated': True,
+            'email': email,
+            'username': verification.get('username', 'User')
+        })
+        st.success("Logged in successfully!")
+        time.sleep(0.5)
+        st.rerun()
+    else:
+        st.error("Failed to create session. Please try again.")
     
     if create_session_token(email, session_token, expires_at):
         cookie_controller.set("session_token", session_token, 
@@ -114,18 +140,31 @@ def run():
         if st.sidebar.button("Logout"):
             logout()
     else:
-        col1, col2, col3 = st.columns([1, 3, 1])
+        col1, col2, col3 = st.columns([1, 0.96, 1])
         with col2:
-            # Preserved original styling
+            # Add responsive CSS
             st.markdown("""
                 <style>
+                    @media (max-width: 600px) {
+                        div[data-testid="stForm"] {
+                            padding: 1rem !important;
+                        }
+                        .fancy-header {
+                            font-size: 20px !important;
+                        }
+                        .stButton button {
+                            width: 100% !important;
+                            !important;
+                        }
+                    }
                     div[data-testid="stForm"] {
                         background: linear-gradient(135deg, #B0CDEAFF, #2A4FBFFF);
                         padding: 2rem;
                         border-radius: 10px;
                         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
                         border: 1px solid #ccc;
-                    }.fancy-header {
+                    }
+                    .fancy-header {
                         text-align: center;
                         color: #1d3557;
                         font-size: 26px;
@@ -142,8 +181,8 @@ def run():
                     email = st.text_input('Email', key="login_email")
                     password = st.text_input('Password', type='password', key="login_password")
 
-                    # Preserved original column layout
-                    col1, col_space, col2 = st.columns([1, 1.9, 1])
+                    # Use responsive columns
+                    col1, col_space, col2 = st.columns([1.05, 1.95, 1])
                     with col1:
                         login_submitted = st.form_submit_button("Login")
                     with col2:
@@ -167,12 +206,13 @@ def run():
                     password = st.text_input('Password', type='password', key="signup_password")
                     confirm_password = st.text_input('Confirm Password', type='password', key="signup_confirm_password")
 
-                    # Preserved original button layout
+                    # Use responsive columns
                     col1, col2 = st.columns([1, 0.717])
                     with col1:
                         signup_submitted = st.form_submit_button("Create my account")
                     with col2:
                         back_submitted = st.form_submit_button("Go back to Login")
+
                     if signup_submitted:
                         if not all([email, username, password, confirm_password]):
                             st.error("Please fill in all fields.")

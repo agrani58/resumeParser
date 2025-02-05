@@ -1,7 +1,5 @@
 import streamlit as st
 
-
-
 def components():
     """Components that should only be visible after login"""
     
@@ -27,25 +25,25 @@ def components():
     # Sidebar background color
     sidebar_bg_color = """
     <style>
-    .css-1d391kg { 
+    [data-testid="stSidebar"]{ 
+        # min-width: 210px !important;
+        # max-width: 210px !important;
         background-color: #E5ECE9; 
     }
     </style>
     """
     st.markdown(sidebar_bg_color, unsafe_allow_html=True)
 
-    try:
-        col1, col2, col3 = st.columns([1, 2, 1])  # Create 3 columns for alignment
-        with col2:
+    col1, col2, col3 ,col4,col5= st.columns([1, 1, 2.2, 1,1])  # Create 3 columns for alignment
+    with col3:
             st.markdown(
-                "<style>img {margin-top: -50px; margin-left: -75px }</style>", 
+                "<style>img {margin-top: -80px;  }</style>", 
                 unsafe_allow_html=True
             )
             st.image("Logo/logo2.png", caption=" ", width=500)
             st.markdown(
-                "<div style='margin-top: -30px; margin-left:110px;'>"
+                "<div style='margin-top: -30px;width:100%; margin-left:185px'>"
                 "<p>AI Resume Parser</p></div>", 
                 unsafe_allow_html=True
+            
             )
-    except FileNotFoundError:
-        st.error("Image file not found!")

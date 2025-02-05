@@ -45,20 +45,28 @@ def is_valid_date(date_str):
     
     if date_str in ["Present", "N/A"]:
         return True
-    
 def _tracker(data, missing, path="", strict=False):
     if isinstance(data, dict):
+        has_missing_date = False  # Track if job entry has missing dates
         for key, value in data.items():
             new_path = f"{path}.{key}" if path else key
             if isinstance(value, (dict, list)):
                 _tracker(value, missing, new_path, strict)
             else:
-                if key.lower() == "graduation_date" and not is_valid_date(str(value)):
+                # Check if the field is an invalid/missing date
+                if key.lower() in ["start_date", "end_date"] and not is_valid_date(str(value)):
                     missing.append(new_path)
+                    has_missing_date = True  # Mark job entry as having missing dates
                 elif str(value).strip().upper() in ["N/A", "NA", "NONE", ""]:
                     missing.append(new_path)
+        
+        # If dates are missing, check if description should also be flagged
+        if has_missing_date and "description" in data and str(data["description"]).strip():
+            missing.append(f"{path}.description")
+
         if not data and path:
             missing.append(path)
+
     elif isinstance(data, list):
         if not data and path:
             missing.append(path)
@@ -67,6 +75,5 @@ def _tracker(data, missing, path="", strict=False):
             if isinstance(item, (dict, list)):
                 _tracker(item, missing, new_path, strict)
             else:
-                # Check if the item itself is "N/A"
                 if str(item).strip().upper() in ["N/A", "NA", "NONE", ""]:
                     missing.append(new_path)

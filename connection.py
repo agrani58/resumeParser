@@ -65,7 +65,6 @@ def verify_user(email, password):
                 if bcrypt.checkpw(password.encode(), user[2].encode()):
                     return {'status': True, 'username': user[1]}
                 return {'status': False, 'username': None}
-            return {'status': False, 'username': None}
     except mysql.connector.Error as err:
         print(f"Auth error: {err}")
         return {'status': False, 'username': None}
