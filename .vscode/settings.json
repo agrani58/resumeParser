@@ -1,6 +1,7 @@
 {
     "python.analysis.extraPaths": [
-        "./controller"
+        "./controller",
+        "./app"
     ],
     "git.ignoreLimitWarning": true
 }
