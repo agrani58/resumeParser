@@ -1,9 +1,12 @@
 from PyPDF2 import PdfReader
+
+
+
 from app.libraries import *
 import app.accounts as accounts
 from app.config import cookie_controller
 from app.utils import count_na, is_valid_date, resume_details, resume_score
-from app.schema import delete_session_token
+from app.schema import create_connection, delete_session_token, save_resume_analysis
 from app.view import display_footer, display_parsed_data, display_tips
 
 def get_user_upload_dir():
@@ -69,8 +72,13 @@ def clear_user_files():
         os.rmdir(user_dir)
 
 def run():
+    from app import admin
+    if st.session_state.authenticated and st.session_state.role_id == 2:
+        admin.run()
+        st.stop()
     components()
     parsed_data = {}
+    
     st.session_state.setdefault('uploaded_file', None)
     st.session_state.setdefault('parsed_data', None)
     st.session_state.setdefault('na_count', 0)
@@ -81,7 +89,7 @@ def run():
         st.warning("Please login first!")
         run()
         return
-        
+
     user_dir = get_user_upload_dir()
     if not os.path.exists(user_dir):
         os.makedirs(user_dir)
@@ -99,19 +107,22 @@ def run():
         st.session_state.pop("email", None)
         st.rerun()
 
-    # Check for existing resume files and set resume_path
     if not st.session_state.resume_path:
         existing_files = [f for f in os.listdir(user_dir) if f.lower().endswith(('.pdf', '.docx'))]
         if existing_files:
             latest_file = max(existing_files, key=lambda x: os.path.getmtime(os.path.join(user_dir, x)))
             st.session_state.resume_path = os.path.join(user_dir, latest_file)
 
-    # # Parse resume if not already parsed
     if st.session_state.resume_path and not st.session_state.parsed_data:
-            resume_text = extract_text_from_pdf(st.session_state.resume_path)
-            if resume_text:
-                st.session_state.parsed_data = resume_details(resume_text)
-                st.session_state.na_count = count_na(st.session_state.parsed_data)[0]
+        resume_text = extract_text_from_pdf(st.session_state.resume_path)
+        if resume_text:
+            st.session_state.parsed_data = resume_details(resume_text)
+            st.session_state.na_count = count_na(st.session_state.parsed_data)[0]
+            # Save parsed data to database
+            if save_resume_analysis(st.session_state.email, st.session_state.parsed_data):
+                st.success("Resume data saved to database!")
+            else:
+                st.error("Failed to save resume data to database.")
 
     col1, col2, col3 = st.columns([1.4, 0.002, 1.4])
 
@@ -148,7 +159,6 @@ def run():
             st.session_state.parsed_data = None  # Reset parsed data to trigger reprocessing
             st.rerun()
 
-        # Display resume if path is valid
         if st.session_state.resume_path and os.path.exists(st.session_state.resume_path):
             show_resume(st.session_state.resume_path)
 
@@ -166,10 +176,10 @@ def run():
             'applied_profile': parsed_data.get("Applied_for_Profile", ""),
             'invalid_dates_count': sum(1 for edu in parsed_data.get("Education", []) 
                                     if not is_valid_date(edu.get('Graduation_Date', ''))),
-            'profile': parsed_data.get("Suggested_Resume_Category", "").lower(),
+            'applied_profile ': parsed_data.get("Applied_for_Profile", "").lower(),
             'resume_score': resume_score(parsed_data),
             'Recommended_Additional_Skills': parsed_data.get("Recommended_Additional_Skills", [])
         }
-        display_tips(tips_data)
-    
-    display_footer()
+        display_tips(tips_data,missing_fields=na_paths)
+
+    display_footer()    

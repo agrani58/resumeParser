@@ -13,17 +13,20 @@ def components():
 
     # Page background color
     page_bg_color = """
-    <style>
-    .stApp {
-        background-color: #f0f8ff; /* Light blue color */
-    }
-    </style>
-    """
-    st.markdown(page_bg_color, unsafe_allow_html=True)
+    
+        <style>
+        .stApp {
 
+            background: linear-gradient( 45deg,#F9F6F6FF, #F9F6F6FF,#90dbf4,#90dbf4); 
+##f8edeb,#fcd5ce,#ffcfd2,#fbf8cc
+        }
+        </style>
+        """
+    st.markdown(page_bg_color, unsafe_allow_html=True)
 
     col1, col2, col3 ,col4,col5= st.columns([1, 1, 2.2, 1,1])  # Create 3 columns for alignment
     with col3:
+        
             st.markdown(
                 "<style>img {margin-top: -4rem;  }</style>", 
                 unsafe_allow_html=True

@@ -6,7 +6,7 @@ import streamlit as st
 
 from app.utils import fetch_yt_video, is_valid_date,courses_recommendation, resume_score
         
-from app.schema import ds_course, web_course, android_course, ios_course, uiux_course,software_dev_course,qa_course
+from app.liks import ds_course, web_course, android_course, ios_course, uiux_course,software_dev_course,qa_course
 
     # Full width container for tips
 
@@ -16,14 +16,16 @@ def display_in_container(title, value):
     elif isinstance(value, list):
         value = "<br>".join([str(item) for item in value])
     st.markdown(f"""
-    <div style="margin-bottom: 2px;">
-        <strong>{title}</strong>
-            <div style="border: 2px solid #457b9d; border-radius: 10px;margin-bottom:0.8rem;padding: 13px; 
-                background-color: #E5FBF6FF; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);">
+        <div style="margin-bottom: 2px;">
+            <strong>{title}</strong>
+            <div style="border: 2px solid #CEE8FAFF; border-radius: 10px; margin-bottom: 0.8rem; padding: 13px; 
+                        background: linear-gradient(to right, #CEE8FAFF, #F1E4FAFF);
+                        ">
                 {value}
             </div>
         </div>
-        """, unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
+
 
 def display_parsed_data(parsed_data, missing_fields):
     if not parsed_data:
@@ -41,7 +43,6 @@ def display_parsed_data(parsed_data, missing_fields):
             structured_missing[top_field][sub_field] += 1
         else:
             structured_missing[top_field]["_top"] += 1
-            
     processed_data = {
         "Full_Name": parsed_data.get("Name", "N/A"),
         "Email": parsed_data.get("Email", "N/A"),
@@ -59,6 +60,7 @@ def display_parsed_data(parsed_data, missing_fields):
         "Certifications": parsed_data.get("Certifications", ["N/A"]),
         "Education": parsed_data.get("Education", []),
         "Projects": parsed_data.get("Projects", []),
+        "missing_fields":missing_fields,
         "Suggested_Resume_Category": parsed_data.get("Suggested_Resume_Category", "N/A"),
         "Recommended_Additional_Skills": parsed_data.get("Recommended_Additional_Skills", []),  
         "Hobbies": parsed_data.get("Hobbies", [])  
@@ -89,6 +91,7 @@ def display_parsed_data_ui(processed_data, structured_missing):
     Suggested_Resume_Category = processed_data["Suggested_Resume_Category"]
     Recommended_Additional_Skills = processed_data["Recommended_Additional_Skills"]
     Hobbies= processed_data["Hobbies"] 
+    missing_fields = processed_data.get('missing_fields', [])
     # Process Work Experience
     Work_Experience_str = []
     for job in Work_Experience:
@@ -131,6 +134,8 @@ def display_parsed_data_ui(processed_data, structured_missing):
         date_display = raw_date if is_valid_date(raw_date) else "N/A"
         Education_str.append(
             f"{edu.get('Degree', 'N/A')} from {edu.get('University', 'N/A')} (Graduated: {date_display})")
+
+    
 
     st.markdown(
         f"""<div style='margin-left:-7rem; margin-top: -1.5rem;'><h4 style='color: #1d3557;'> Hello {Full_Name}! 😊</h4></div>""",unsafe_allow_html=True  )
@@ -234,6 +239,11 @@ def display_parsed_data_ui(processed_data, structured_missing):
                 f'<div class="warning-text">⚠️ Missing Dates in {dates_missing} job entries</div>',
                 unsafe_allow_html=True
             )
+        if len(Work_Experience) == 0:
+            st.markdown(
+            '''<div class="warning-text">⚠️ No work experience found in resume</div>''',
+            unsafe_allow_html=True
+        )
 
     # Projects Section
     with st.expander("🛠️ Your Projects", expanded=False):
@@ -312,23 +322,21 @@ def profiles_match(applied, suggested):
     # Check if there's an overlap in the words (considering both titles as sets)
     return not applied_words.isdisjoint(suggested_words)
 
-
-def display_tips(processed_data):
-    """Display recommendations section with proper data flow"""
+def display_tips(processed_data, missing_fields):
     # Unpack data
     na_count = processed_data.get('na_count', 0)
-    missing_fields = processed_data.get('missing_fields', [])  # Get missing fields from processed_data
     suggested_category = processed_data.get('suggested_category', "N/A")
     applied_profile = processed_data.get('applied_profile', "N/A")
-    profile = processed_data.get('profile', "N/A")
     Recommended_Additional_Skills = processed_data.get("Recommended_Additional_Skills", [])
 
-    # Check if any missing fields are related to dates
-    date_fields = ["Start_Date", "End_Date", "Graduation_Date", "Issue_Date", "Expiry_Date"]
-    missing_dates = any(
-        any(date_field in field for date_field in date_fields)
-        for field in missing_fields
+    # Check for missing date fields
+    date_fields = ["Start_Date", "End_Date", "Graduation_Date"]
+    missing_dates = sum(
+        1 for field in missing_fields
+        if any(date_key in field for date_key in date_fields)
     )
+
+
 
     # Calculate final score
     base_score = processed_data.get('resume_score', 0)
@@ -350,51 +358,86 @@ def display_tips(processed_data):
 
         # Show either success message or NA count warning
         if na_count > 0:
-            st.markdown(f"""<div style="padding: 10px;margin-top:0.7rem;margin-bottom:0.5rem;background-color: #ffe6e6; border-radius: 25px; text-align: center;">
-                            ⚠️ Found {na_count} missing fields. Include these fields for ATS compatibility.</div>""", 
-                            unsafe_allow_html=True)
+            st.markdown(f"""
+                <div style="padding: 10px; margin-top: 0.7rem; margin-bottom: 0.5rem; border-radius: 25px; 
+                            text-align: center; overflow: hidden;">
+                    <div style="padding: 10px; background: linear-gradient(to right, #bd1f36, #FF3A2CFF); 
+                                border-radius: 25px; color: #EED5D5FF;">
+                        ⚠️ Found {na_count} missing fields. Include these fields for ATS compatibility.
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
         else:
-            st.markdown(f"""<div style="padding: 10px;margin-top:0.7rem;margin-bottom:0.5rem;background-color: #d4edda; border-radius: 25px; text-align: center; color: #155724;">
-                            ✅ Congratulations! Your resume is ATS compatible!</div>""", 
-                            unsafe_allow_html=True)
+            st.markdown(f"""
+                <div style="padding: 10px; margin-top: 0.7rem; margin-bottom: 0.5rem; border-radius: 25px; 
+                            text-align: center; overflow: hidden;">
+                    <div style="padding: 10px; background: linear-gradient(to right, #2b9348, #54FF0BFF); 
+                                border-radius: 25px;color:#143601;">
+                        ✅ Congratulations! Your resume is ATS compatible!
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
 
         if suggested_category and applied_profile and not profiles_match(applied_profile, suggested_category):
-            st.markdown(
-                f"""<div style="padding: 10px;margin-top:0.7rem;margin-bottom:0.5rem;background-color: #ffe6e6; border-radius: 25px; text-align: center;">
-                        🎯Profile mismatch: Applied for "{applied_profile}" but suggested "{suggested_category}"
-                    </div>""",
-                unsafe_allow_html=True
-            )
+            st.markdown(f"""
+                <div style="padding: 10px; margin-top: 0.7rem; margin-bottom: 0.5rem; border-radius: 25px; 
+                            text-align: center; overflow: hidden;">
+                    <div style="padding: 10px; background: linear-gradient(to right, #bd1f36, #FF3A2CFF); 
+                                border-radius: 25px; color: #EED5D5FF;">
+                        🎯 Profile mismatch: Applied for "{applied_profile}" but suggested "{suggested_category}"
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
         else:
-            st.markdown(
-                f"""<div style="padding: 10px;margin-top:0.7rem;margin-bottom:0.5rem;background-color: #d4edda; border-radius: 25px; text-align: center; color: #155724;">
-                        ✅ Congratulations! Your Resume keywords matches with the Suggested Resume Category
-                    </div>""",
-                unsafe_allow_html=True
-            )
+            st.markdown(f"""
+                <div style="padding: 10px; margin-top: 0.7rem; margin-bottom: 0.5rem; border-radius: 25px; 
+                            text-align: center; overflow: hidden;">
+                    <div style="padding: 10px; background: linear-gradient(to right, #2b9348, #54FF0BFF); 
+                                border-radius: 25px; color: #143601;">
+                        ✅ Congratulations! Your Resume keywords match with the Suggested Resume Category!
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
 
-        # Conditionally show date warning only if missing_fields contains date-related fields
-        if missing_dates:
-            st.markdown(f"""<div style="padding: 10px;margin-top:0.7rem;margin-bottom:2rem;background-color: #ffe6e6; border-radius: 25px; text-align: center;">
-                                📅 Found Dates Missing. Use (Month YYYY) or (mm/yyyy) format</div>""", 
-                                unsafe_allow_html=True)
+
+            # Show warning only if there are actual missing dates
+            if missing_dates > 0:
+                st.markdown(f"""
+                    <div style="padding: 10px; margin-top: 0.7rem; margin-bottom: 2rem; border-radius: 25px; 
+                                text-align: center; overflow: hidden;">
+                        <div style="padding: 10px; background: linear-gradient(to right, #bd1f36, #FF3A2CFF); 
+                                    border-radius: 25px;color: #EED5D5FF;">
+                            📅 Found {missing_dates} date fields missing. Use <strong>(Month YYYY)</strong> or <strong>(mm/yyyy)</strong> format.
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown(f"""
+                    <div style="padding: 10px; margin-top: 0.7rem; margin-bottom: 2rem; border-radius: 25px; 
+                                text-align: center; overflow: hidden;">
+                        <div style="padding: 10px; background: linear-gradient(to right, #2b9348, #54FF0BFF); 
+                                    border-radius: 25px;color: #EED5D5FF;">
+                            📅 Found no missing date fields.
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
 
         # Course recommendations
         course_list = []
-        if profile:
-            if any(kw in profile.lower() for kw in ["data", "science", "machine learning"]):
+        if applied_profile:
+            if any(kw in applied_profile.lower() for kw in ["data", "science", "machine learning"]):
                 course_list = ds_course
-            elif "web" in profile.lower():
+            elif "web" in applied_profile.lower():
                 course_list = web_course
-            elif "android" in profile.lower():
+            elif "android" in applied_profile.lower():
                 course_list = android_course
-            elif "ios" in profile.lower():
+            elif "ios" in applied_profile.lower():
                 course_list = ios_course
-            elif "qa" in profile.lower():
+            elif "qa" in applied_profile.lower():
                 course_list = qa_course
-            elif "software" in profile.lower():
+            elif "software" in applied_profile.lower():
                 course_list = software_dev_course
-            elif any(kw in profile.lower() for kw in ["ui", "ux", "design"]):
+            elif any(kw in applied_profile.lower() for kw in ["ui", "ux", "design"]):
                 course_list = uiux_course
 
         col1, col2, col3, col4 = st.columns([0.2, 1, 0.2, 1])
@@ -407,13 +450,13 @@ def display_tips(processed_data):
                 courses_recommendation(course_list)
                 st.caption("Take these Courses & Certifications for skill development")
             else:  # Show message when no courses are available for the profile
-                profile_display = applied_profile
+                
                 st.markdown(f'''<div style="margin-top:1rem; margin-bottom:0.5rem;">
                                 <h5 style="color: #1d3557;">Recommended Learning Resources </h5>
                             </div>''', unsafe_allow_html=True)
                 st.markdown(f"""
                 <div>
-                    No specific courses found for <strong>{profile_display}</strong>. Consider these general resources:
+                    No specific courses found for <strong>{applied_profile}</strong>. Consider these general resources:
                     <br><br>
                     🌐 Explore platforms like:
                     <ul>
@@ -439,13 +482,12 @@ def display_tips(processed_data):
         st.markdown('''<div style='text-align: center; margin-top: -1rem;'><h4 style='color: #1d3557;'>Bonus Video for Resume Writing🎬</h4></div>''', 
                     unsafe_allow_html=True)
         fetch_yt_video()
-
 def display_footer():
     st.markdown("""
     <style>
 
         .footer a {
-        color:#5D8AA8;
+        color:#1A4562D1;
 
         margin-left: 5px;
     }

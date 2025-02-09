@@ -7,7 +7,7 @@ import os
 from dotenv import load_dotenv
 import google.generativeai as genai
 import streamlit as st
-from app.schema import resume_videos,interview_videos
+from app.liks import resume_videos,interview_videos
 load_dotenv()
 
 # Load environment variables from the .env file
@@ -61,7 +61,7 @@ def resume_details(resume_text):
     - Certifications
     - Achievements 
     - Suggested_Resume_Category (infer the most relevant job category based on skills, certifications, and work experience)
-    - Recommended_Additional_Skills (provide 3-5 concrete skills relevant to the Suggested_Resume_Category)
+    - Recommended_Additional_Skills (provide 3-5 concrete skills relevant to Applied_for_profile)
     - Hobbies (list of interests /hobbies)
     The resume text:
     {resume_text}
@@ -164,11 +164,12 @@ def _tracker(data, missing, path="", strict=False):
                 # Check if the item itself is "N/A"
                 if str(item).strip().upper() in ["N/A", "NA", "NONE", ""]:
                     missing.append(new_path)
-                    
+# Update the is_valid_date() function in utils.py
 def is_valid_date(date_str):
     """Check if date matches mm/yyyy or Month YYYY format"""
     if not isinstance(date_str, str):
         return False
+        
     # Check for Month YYYY format (e.g., "May 2023")
     if len(date_str.split()) == 2:
         month, year = date_str.split()
@@ -181,8 +182,11 @@ def is_valid_date(date_str):
         month, year = date_str.split('/')
         return month.isdigit() and 1 <= int(month) <= 12 and year.isdigit() and len(year) == 4
     
-    if date_str in ["Present", "N/A"]:
+    # Only allow "Present" as special case
+    if date_str == "Present":
         return True
+        
+    return False
     
 def courses_recommendation(course_list):
             rec_course=[]
@@ -262,4 +266,3 @@ def fetch_yt_video():
             </iframe>
         </div>
     ''', unsafe_allow_html=True)
-    

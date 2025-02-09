@@ -1,5 +1,3 @@
-from datetime import datetime, timedelta, timezone
-
 from streamlit import secrets
 from app.config import cookie_controller  # Changed import
 from app.schema import create_connection, create_session_token, create_user, delete_session_token, verify_user
@@ -9,8 +7,7 @@ import secrets
 
 from app.view import display_footer
 
-# Remove circular imports
-# Keep the rest of your existing home.py code
+
 
 def is_valid_email(email):
     return re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email)
@@ -42,7 +39,7 @@ def check_session():
     try:
         with create_connection() as conn, conn.cursor() as cursor:
             cursor.execute("""
-                SELECT u.email, u.username FROM user_sessions s
+                SELECT u.email, u.username, u.role_id FROM user_sessions s  -- Added role_id
                 JOIN users u ON s.email = u.email
                 WHERE s.session_token = %s AND s.expires_at > UTC_TIMESTAMP()
             """, (session_token,))
@@ -50,7 +47,8 @@ def check_session():
                 st.session_state.update({
                     'authenticated': True,
                     'email': session[0],
-                    'username': session[1]
+                    'username': session[1],
+                    'role_id': session[2]  # Add role_id to session state
                 })
                 return True
     except Exception as e:
@@ -62,13 +60,20 @@ from datetime import datetime, timedelta, timezone
 
 # accounts.py (updated login function)
 def login(email, password):
-    
+    # In login function (accounts.py)
+
     # Verify credentials
     verification = verify_user(email, password)
     if not verification or not isinstance(verification, dict) or not verification.get('status'):
         return st.error("Login failed. Check your credentials.")
     
-
+# In accounts.py's login function (where verification happens)
+    result = verify_user(email, password)
+    if result['status']:
+        st.session_state.authenticated = True
+        st.session_state.email = email
+        st.session_state.username = result['username']
+        st.session_state.role_id = result['role_id']  # Add this line
     # Create new session
     session_token = secrets.token_urlsafe(32)
     expires_at = datetime.now(timezone.utc) + timedelta(days=7)
@@ -87,20 +92,6 @@ def login(email, password):
     else:
         st.error("Failed to create session. Please try again.")
     
-    if create_session_token(email, session_token, expires_at):
-        cookie_controller.set("session_token", session_token, 
-                            max_age=int((expires_at - datetime.now(timezone.utc)).total_seconds()))
-        st.session_state.update({
-            'authenticated': True,
-            'email': email,
-            'username': verification.get('username', 'User')
-        })
-        st.success("Logged in successfully!")
-        time.sleep(0.5)
-        st.rerun()
-    else:
-        st.error("Failed to create session. Please try again.")
-
 def logout():
     clear_user_files()
     if session_token := cookie_controller.get("session_token"):
@@ -128,36 +119,51 @@ def run():
         if st.sidebar.button("Logout"):
             logout()
     else:
-        col1, col2, col3 = st.columns([1, 0.96, 1])
-        with col2:
-            # Add responsive CSS
+        col1, col2, col3,col4,col5 = st.columns([1, 1.3,1.3,1.1, 1])
+        with col3:
+            
             st.markdown("""
                 <style>
+                    /* General form styling */
+                    div[data-testid="stForm"] {
+                        margin-top: 1rem;
+                        border: none !important;
+                        min-height: 400px;
+                        box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.4);
+                        padding: 2rem !important;
+                    }
+
+                    /* Fancy header fix */
+                    h3.fancy-header {
+                        text-align: center !important;
+                        color: #FFFFFFC0 !important;
+                        font-size: 40px !important;
+                        margin-bottom: 2rem !important;
+                    }
+
+                    /* Button styling */
+                    .stButton > button {
+                        width: 100% !important;
+                        color: white !important;
+                        
+                        padding: 12px 24px !important;
+                        border-radius: 8px !important;
+                        font-size: 16px !important;
+                        font-weight: bold !important;
+
+                        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2) !important;
+                    }
+                    /* Media queries */
                     @media (max-width: 600px) {
                         div[data-testid="stForm"] {
-                            padding: 1rem !important;
+                            padding: 1.5rem !important;
+                            margin: 0 10px !important;
                         }
-                        .fancy-header {
-                            font-size: 20px !important;
+                        
+                        .stButton > button {
+                            font-size: 14px !important;
+                            padding: 10px 20px !important;
                         }
-                        .stButton button {
-                            width: 100% !important;
-                            !important;
-                        }
-                    }
-                    div[data-testid="stForm"] {
-                        background: linear-gradient(135deg, #B0CDEAFF, #2A4FBFFF);
-                        padding: 2rem;
-                        border-radius: 10px;
-                        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-                        border: 1px solid #ccc;
-                    }
-                    .fancy-header {
-                        text-align: center;
-                        color: #1d3557;
-                        font-size: 26px;
-                        margin-bottom: 1.5rem;
-                        font-weight: bold;
                     }
                 </style>
             """, unsafe_allow_html=True)
@@ -170,7 +176,7 @@ def run():
                     password = st.text_input('Password', type='password', key="login_password")
 
                     # Use responsive columns
-                    col1, col_space, col2 = st.columns([1.05, 1.95, 1])
+                    col1, col_space, col2 = st.columns([1.4, 1, 1.5])
                     with col1:
                         login_submitted = st.form_submit_button("Login")
                     with col2:
@@ -219,3 +225,6 @@ def run():
                         st.session_state.form_choice = "Login"
                         st.rerun()
     display_footer()
+    
+    #corrected.
+    
