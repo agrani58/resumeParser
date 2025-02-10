@@ -1,25 +1,26 @@
+import streamlit as st
+import os
+import time
+import base64
 from PyPDF2 import PdfReader
-
-
-
-from app.libraries import *
-import app.accounts as accounts
+from app.libraries import *  # your additional libraries
 from app.config import cookie_controller
-from app.utils import count_na, is_valid_date, resume_details, resume_score
 from app.schema import create_connection, delete_session_token, save_resume_analysis
+from app.utils import count_na, is_valid_date, resume_details, resume_score
 from app.view import display_footer, display_parsed_data, display_tips
+from app.components import components  # Use components() for home page
 
 def get_user_upload_dir():
-    """Get the user-specific upload directory."""
     if not st.session_state.get('authenticated'):
         return None
     return os.path.join('./Uploaded_Resumes', st.session_state.email)
 
 def convert_docx_to_pdf(docx_resume_path):
-    if docx_resume_path.endswith(".docx"): 
+    if docx_resume_path.endswith(".docx"):
         try:
+            import pythoncom, comtypes.client
             pythoncom.CoInitialize()
-            uploaded_resume_path = os.path.splitext(docx_resume_path)[0] + ".pdf"  
+            uploaded_resume_path = os.path.splitext(docx_resume_path)[0] + ".pdf"
             word = comtypes.client.CreateObject("Word.Application")
             word.Visible = False
             in_file = word.Documents.Open(docx_resume_path)
@@ -34,7 +35,6 @@ def convert_docx_to_pdf(docx_resume_path):
             pythoncom.CoUninitialize()
 
 def show_resume(uploaded_resume_path):
-    """Display the uploaded resume PDF."""
     try:
         with open(uploaded_resume_path, "rb") as f:
             base64_pdf = base64.b64encode(f.read()).decode('utf-8')
@@ -64,7 +64,6 @@ def extract_text_from_pdf(uploaded_resume_path):
         return None
 
 def clear_user_files():
-    """Clear uploaded files on logout."""
     user_dir = get_user_upload_dir()
     if user_dir and os.path.exists(user_dir):
         for f in os.listdir(user_dir):
@@ -72,60 +71,54 @@ def clear_user_files():
         os.rmdir(user_dir)
 
 def run():
-    from app import admin
-    if st.session_state.authenticated and st.session_state.role_id == 2:
-        admin.run()
-        st.stop()
+    # Render home page UI components (background, logo, etc.)
     components()
-    parsed_data = {}
     
+    # If user is free and reached upload limit, force upgrade.
+    if st.session_state.get('authenticated') and st.session_state.get('subscription_type', 'free') == 'free':
+        from app.schema import get_upload_count
+        upload_count = get_upload_count(st.session_state.email)
+        if upload_count >= 3:
+            st.error("You've reached your monthly limit of 3 free uploads. 🔒")
+            col1, col2 = st.columns([1, 3])
+            with col2:
+                if st.button("✨ Upgrade to Premium for Unlimited Uploads", type="primary", key="upgrade_button_home"):
+                    st.session_state.form_choice = "Payment"
+                    st.rerun()
+            st.stop()
     st.session_state.setdefault('uploaded_file', None)
     st.session_state.setdefault('parsed_data', None)
     st.session_state.setdefault('na_count', 0)
     st.session_state.setdefault('resume_path', None)
 
-    accounts.check_session() 
+    from app.accounts import check_session, run as accounts_run
+    check_session()
     if not st.session_state.get('authenticated'):
         st.warning("Please login first!")
-        run()
-        return
+        accounts_run()  # Redirect to login/signup page.
+        st.stop()
 
     user_dir = get_user_upload_dir()
     if not os.path.exists(user_dir):
         os.makedirs(user_dir)
 
-    if st.sidebar.button("Logout"):
-        clear_user_files()
-        keys_to_remove = ['uploaded_file', 'parsed_data', 'na_count', 'resume_path', 'parsed_resume', 'analysis_done', 'file_processed']
-        for key in keys_to_remove:
-            st.session_state.pop(key, None)
-        session_token = cookie_controller.get("session_token")
-        if session_token:
-            delete_session_token(session_token)
-            cookie_controller.set("session_token", "", max_age=0)
-        st.session_state.authenticated = False
-        st.session_state.pop("email", None)
-        st.rerun()
-
-    if not st.session_state.resume_path:
+    if not st.session_state.get('resume_path'):
         existing_files = [f for f in os.listdir(user_dir) if f.lower().endswith(('.pdf', '.docx'))]
         if existing_files:
             latest_file = max(existing_files, key=lambda x: os.path.getmtime(os.path.join(user_dir, x)))
             st.session_state.resume_path = os.path.join(user_dir, latest_file)
 
-    if st.session_state.resume_path and not st.session_state.parsed_data:
+    if st.session_state.get('resume_path') and not st.session_state.get('parsed_data'):
         resume_text = extract_text_from_pdf(st.session_state.resume_path)
         if resume_text:
             st.session_state.parsed_data = resume_details(resume_text)
             st.session_state.na_count = count_na(st.session_state.parsed_data)[0]
-            # Save parsed data to database
             if save_resume_analysis(st.session_state.email, st.session_state.parsed_data):
                 placeholder = st.empty()
             else:
                 st.error("Failed to save resume data to database.")
 
     col1, col2, col3 = st.columns([1.4, 0.002, 1.4])
-
     with col1:
         st.markdown(
             '''<div style='margin-top:5rem;margin-bottom:-30px; text-align: center;'>
@@ -133,22 +126,18 @@ def run():
             </div>''',
             unsafe_allow_html=True
         )
-        file_uploaded = st.file_uploader(" ", type=["pdf", "docx"], key="persistent_uploader")
+        # Use a unique key for the file uploader
+        file_uploaded = st.file_uploader(" ", type=["pdf", "docx"], key="file_uploader")
         placeholder = st.empty()
-
-        if file_uploaded and (file_uploaded != st.session_state.uploaded_file):
+        if file_uploaded and (file_uploaded != st.session_state.get('uploaded_file')):
             for f in os.listdir(user_dir):
                 os.remove(os.path.join(user_dir, f))
-                
-            placeholder.success("Resume uploaded successfully!")  
+            placeholder.success("Resume uploaded successfully!")
             time.sleep(2)
             file_extension = file_uploaded.name.split('.')[-1].lower()
             uploaded_resume_path = os.path.join(user_dir, file_uploaded.name)
             with open(uploaded_resume_path, "wb") as f:
                 f.write(file_uploaded.getbuffer())
-            
-            
-            
             if file_extension == "docx":
                 converted_pdf_path = convert_docx_to_pdf(uploaded_resume_path)
                 if converted_pdf_path:
@@ -156,33 +145,28 @@ def run():
                 else:
                     st.error("Failed to convert DOCX to PDF.")
                     return
-            
             st.session_state.resume_path = uploaded_resume_path
             st.session_state.uploaded_file = file_uploaded
             st.session_state.parsed_data = None  # Reset parsed data to trigger reprocessing
             st.rerun()
-
-        if st.session_state.resume_path and os.path.exists(st.session_state.resume_path):
+        if st.session_state.get('resume_path') and os.path.exists(st.session_state.resume_path):
             show_resume(st.session_state.resume_path)
-
     with col3:
         if st.session_state.get('parsed_data'):
             na_count, na_paths = count_na(st.session_state.parsed_data)
             st.session_state.na_count = na_count
             display_parsed_data(st.session_state.parsed_data, missing_fields=na_paths)
-
     if st.session_state.get('parsed_data'):
         parsed_data = st.session_state.parsed_data
         tips_data = {
             'na_count': st.session_state.na_count,
             'suggested_category': parsed_data.get("Suggested_Resume_Category", ""),
             'applied_profile': parsed_data.get("Applied_for_Profile", ""),
-            'invalid_dates_count': sum(1 for edu in parsed_data.get("Education", []) 
+            'invalid_dates_count': sum(1 for edu in parsed_data.get("Education", [])
                                     if not is_valid_date(edu.get('Graduation_Date', ''))),
             'applied_profile ': parsed_data.get("Applied_for_Profile", "").lower(),
             'resume_score': resume_score(parsed_data),
             'Recommended_Additional_Skills': parsed_data.get("Recommended_Additional_Skills", [])
         }
-        display_tips(tips_data,missing_fields=na_paths)
-
-    display_footer()    
+        display_tips(tips_data, missing_fields=na_paths)
+    display_footer()

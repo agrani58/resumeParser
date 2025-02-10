@@ -1,12 +1,12 @@
-# admin.py
-import pandas as pd
 import streamlit as st
+import pandas as pd
 import plotly.express as px
-from datetime import datetime
-from .accounts import logout
 from app.schema import create_connection
 from app.view import display_footer
-from app.components import  main_components
+from app.components import main_components
+from app.accounts import logout
+import time
+
 
 def is_admin():
     if not st.session_state.get('authenticated'):
@@ -302,4 +302,4 @@ def run():
         )
         
         st.plotly_chart(fig, use_container_width=True)
-        display_footer()
+    display_footer()

@@ -6,7 +6,6 @@ from .config import cookie_controller
 from .utils import count_na, is_valid_date, resume_details, resume_score
 from .view import display_footer, display_parsed_data, display_tips
 
-
 from .schema import create_connection, create_session_token, save_resume_analysis,create_user, delete_session_token, verify_user
 from .home import clear_user_files
 

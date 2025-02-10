@@ -142,3 +142,25 @@ def run():
     if not is_admin():
         st.error("Unauthorized access. Admins only.")
         st.stop()
+
+
+
+pandas==2.0.3
+plotly==5.12.0
+streamlit==1.20.0
+streamlit-cookies-controller==0.3.1
+st-aggrid==0.2.3
+PyPDF2==2.0.0
+stripe==5.0.0
+nltk==3.7
+google-generativeai==0.9.1
+python-docx==0.8.11
+comtypes==1.1.10
+pdfplumber==0.8.0
+PyMuPDF==1.18.19
+pdfminer.six==20201018
+Pillow==8.4.0
+mysql-connector-python==8.0.29
+streamlit-authenticator==0.3.1
+bcrypt==3.2.0
+streamlit-option-menu==0.3.0

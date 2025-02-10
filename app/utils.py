@@ -1,17 +1,13 @@
 #Core utilities
 import json
 import random
-import yt_dlp 
 import re
-import os
-from dotenv import load_dotenv
 import google.generativeai as genai
 import streamlit as st
 from app.liks import resume_videos,interview_videos
-load_dotenv()
 
 # Load environment variables from the .env file
-API_KEY = os.getenv("GEMINI_API_KEY")
+API_KEY = st.secrets["gemini"]["GEMINI_API_KEY"]
 genai.configure(api_key=API_KEY)
 
 model = genai.GenerativeModel("gemini-1.5-flash")
