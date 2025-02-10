@@ -40,7 +40,7 @@ def resume_details(resume_text):
     - Address (Precise with city)
     - GitHub: extract patterns like github.com/username)"
     - LinkedIn: extract patterns linkedin.com/in/ patterns)"
-    - Professional_Experience_in_Years
+    - Professional_Experience_in_Years (whole number)
     - Highest_Education
     - Technical_Skills (list only technical/hard skills)
     - Soft_Skills (list only non-technical/soft skills)

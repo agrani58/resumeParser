@@ -78,6 +78,19 @@ uiux_course = [['Google UX Design Professional Certificate','https://www.courser
             ['Adobe XD Tutorial: User Experience Design Course [Free]','https://youtu.be/68w2VwalD5w'],
             ['Adobe XD for Beginners [Free]','https://youtu.be/WEljsc2jorI'],
             ['Adobe XD in Simple Way','https://learnux.io/course/adobe-xd']]
+frontend_course = [
+    ['Meta Front-End Developer Professional Certificate', 'https://www.coursera.org/professional-certificates/meta-front-end-developer'],
+    ['Front-End Web Developer by Udacity', 'https://www.udacity.com/course/front-end-web-developer-nanodegree--nd0011'],
+    ['The Complete Front-End Web Development Course', 'https://www.udemy.com/course/front-end-web-development/'],
+    ['Modern HTML & CSS From The Beginning (2023)', 'https://www.udemy.com/course/modern-html-css-from-the-beginning/'],
+    ['React - The Complete Guide (incl. Hooks, React Router, Redux)', 'https://www.udemy.com/course/react-the-complete-guide-incl-redux/'],
+    ['JavaScript - The Complete Guide (Beginner + Advanced)', 'https://www.udemy.com/course/javascript-the-complete-guide-2020-beginner-advanced/'],
+    ['Full-Stack Web Development with React Specialization', 'https://www.coursera.org/specializations/full-stack-react'],
+    ['Responsive Web Design Certification by freeCodeCamp [Free]', 'https://www.freecodecamp.org/learn/responsive-web-design/'],
+    ['HTML & CSS Full Course - Beginner to Pro [Free]', 'https://youtu.be/mU6anWqZJcc'],
+    ['JavaScript Full Course - Beginner to Pro [Free]', 'https://youtu.be/PK8VZgG2Rfw']
+]
+
 
 resume_videos = [
     'https://www.youtube.com/embed/3agP4x8LYFM',

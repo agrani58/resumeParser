@@ -6,7 +6,7 @@ import streamlit as st
 
 from app.utils import fetch_yt_video, is_valid_date,courses_recommendation, resume_score
         
-from app.liks import ds_course, web_course, android_course, ios_course, uiux_course,software_dev_course,qa_course
+from app.liks import ds_course, web_course, android_course, ios_course, uiux_course,software_dev_course,qa_course,frontend_course
 
     # Full width container for tips
 
@@ -437,6 +437,8 @@ def display_tips(processed_data, missing_fields):
                 course_list = qa_course
             elif "software" in applied_profile.lower():
                 course_list = software_dev_course
+            elif "frontend" in applied_profile.lower():
+                course_list = frontend_course
             elif any(kw in applied_profile.lower() for kw in ["ui", "ux", "design"]):
                 course_list = uiux_course
 

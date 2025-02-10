@@ -41,7 +41,8 @@ CREATE TABLE IF NOT EXISTS resume_analysis (
 	linkedin VARCHAR(255),
 	github VARCHAR(255),
     FOREIGN KEY (user_email) REFERENCES users(email) ON DELETE CASCADE
-);
+);select * from resume_analysis;
+DELETE FROM resume_analysis WHERE analysis_id = 10;
 
 CREATE TABLE IF NOT EXISTS phone_numbers (
     phone_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -93,3 +94,6 @@ select* from  addresses;
 
 -- Indexes
 CREATE INDEX idx_resume_user ON resume_analysis(user_email);
+CREATE INDEX idx_name_profile ON resume_analysis (name, applied_profile);
+GRANT SELECT ON resume_parser.* TO 'root'@'localhost';
+SHOW GRANTS FOR 'root'@'localhost';

@@ -1,0 +1,144 @@
+# admin.py
+import pandas as pd
+import streamlit as st
+from .accounts import logout, is_valid_email
+from app.config import cookie_controller
+from app.schema import create_connection, delete_session_token
+from app.view import display_footer
+from app.components import components
+from st_aggrid import AgGrid, GridOptionsBuilder, ColumnsAutoSizeMode
+
+from .home import clear_user_files
+
+def is_admin():
+    if not st.session_state.get('authenticated'):
+        return False
+    try:
+        with create_connection() as conn, conn.cursor() as cursor:
+            cursor.execute("""
+                SELECT role_id FROM users 
+                WHERE email = %s""", (st.session_state.email,))
+            result = cursor.fetchone()
+            return result and result[0] == 2
+    except Exception as e:
+        st.error(f"Admin check error: {e}")
+        return False
+
+def get_resume_data(search_query=None):
+    try:
+        with create_connection() as conn, conn.cursor() as cursor:
+            query = """
+                SELECT 
+                    ra.uploaded_at AS timestamp,
+                    ra.name AS Name,
+                    ra.parsed_email AS Email,
+                    GROUP_CONCAT(DISTINCT pn.phone_number) AS Phone_1,
+                    GROUP_CONCAT(DISTINCT ad.address) AS Address,
+                    ra.highest_education AS Highest_Education,
+                    ra.applied_profile AS Applied_for_Profile,
+                    ra.professional_experience AS Professional_Experience_in_Years,
+                    ra.linkedin AS LinkedIn,
+                    ra.github AS GitHub
+                FROM resume_analysis ra
+                LEFT JOIN phone_numbers pn ON ra.analysis_id = pn.analysis_id
+                LEFT JOIN addresses ad ON ra.analysis_id = ad.analysis_id
+            """
+
+            # Add search filter
+            where_clause = []
+            params = []
+            if search_query:
+                where_clause.append("(ra.name LIKE %s OR ra.applied_profile LIKE %s)")
+                params.extend([f"%{search_query}%", f"%{search_query}%"])
+
+            if where_clause:
+                query += " WHERE " + " AND ".join(where_clause)
+
+            # Grouping and limit
+            query += """ 
+                GROUP BY ra.analysis_id, ra.uploaded_at, ra.name, ra.parsed_email, 
+                ra.applied_profile, ra.resume_score, ra.highest_education
+                LIMIT 15
+            """
+
+            cursor.execute(query, params)
+            columns = [desc[0] for desc in cursor.description]
+            data = cursor.fetchall()
+
+            return pd.DataFrame(data, columns=columns)
+
+    except Exception as e:
+        st.error(f"Database error: {e}")
+        return pd.DataFrame()
+
+def run():
+    components()
+
+    col1, col2 = st.columns([13, 1])
+    with col1:
+        st.markdown(f"""<h3 style="color: #1d3557;">Welcome {st.session_state.username}!</h3>""", unsafe_allow_html=True)
+    
+    with col2:
+        if st.button(" Log Out", key="logout_btn"):
+            logout()
+
+    st.markdown("""
+        <div style="text-align:center; margin-bottom: -2rem; margin-top: -1.5rem;">
+            <h4 style="color: #1d3557; font-weight: bold;">📊 Admin Dashboard</h4>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # Search box
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        search_query = st.text_input(" ", placeholder="Type to search for Name or Fields 🔍")
+
+    # Get data
+    df = get_resume_data(search_query if search_query else None)
+
+    # Reorder columns
+    column_order = [
+        "timestamp",
+        "Name", 
+        "Email",
+        "Phone_1",
+        "Address",
+        "Highest_Education",
+        "Applied_for_Profile",
+        "Professional_Experience_in_Years",
+        "LinkedIn",
+        "GitHub"
+    ]
+    df = df[[col for col in column_order if col in df.columns]]  # Keep only available columns
+
+    # Display table with color styling
+    if not df.empty:
+        gb = GridOptionsBuilder.from_dataframe(df)
+        gb.configure_pagination(paginationAutoPageSize=False, paginationPageSize=10)
+        gb.configure_default_column(groupable=True, sortable=True, filterable=True)
+
+        # Custom styling
+        gb = GridOptionsBuilder.from_dataframe(df)
+        gb.configure_columns(
+            column_order,
+            cellStyle={"backgroundColor": "#f1f8ff", "color": "#1d3557"}
+        )
+
+        AgGrid(
+            df[column_order],
+            gridOptions=gb.build(),
+            columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS,
+            height=390,
+            theme="alpine",  # Change to "streamlit", "balham", or "material" if needed
+            allow_unsafe_jscode=True
+        )
+    else:
+        st.info("No resume data found matching your criteria.")
+
+    display_footer()
+
+
+
+    if not is_admin():
+        st.error("Unauthorized access. Admins only.")
+        st.stop()

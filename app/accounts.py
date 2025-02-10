@@ -6,6 +6,7 @@ from app.libraries import *
 import secrets
 
 from app.view import display_footer
+from app.components import main_components
 
 
 
@@ -106,7 +107,7 @@ def logout():
     
     st.rerun()
 def run():
-    components()
+    main_components()
 
     st.session_state.setdefault('authenticated', False)
     st.session_state.setdefault('form_choice', 'Login')
@@ -121,52 +122,54 @@ def run():
     else:
         col1, col2, col3,col4,col5 = st.columns([1, 1.3,1.3,1.1, 1])
         with col3:
-            
+                    
             st.markdown("""
-                <style>
-                    /* General form styling */
-                    div[data-testid="stForm"] {
-                        margin-top: 1rem;
-                        border: none !important;
-                        min-height: 400px;
-                        box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.4);
-                        padding: 2rem !important;
-                    }
-
-                    /* Fancy header fix */
-                    h3.fancy-header {
-                        text-align: center !important;
-                        color: #FFFFFFC0 !important;
-                        font-size: 40px !important;
-                        margin-bottom: 2rem !important;
-                    }
-
-                    /* Button styling */
-                    .stButton > button {
-                        width: 100% !important;
-                        color: white !important;
-                        
-                        padding: 12px 24px !important;
-                        border-radius: 8px !important;
-                        font-size: 16px !important;
-                        font-weight: bold !important;
-
-                        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2) !important;
-                    }
-                    /* Media queries */
-                    @media (max-width: 600px) {
+                    <style>
+                        /* General form styling */
                         div[data-testid="stForm"] {
-                            padding: 1.5rem !important;
-                            margin: 0 10px !important;
+                            margin: 1rem auto;
+                            border: 2px solid #85C4E1FF;
+                            min-eight: 400px;
+                            background-color:white;
+                            box-shadow: 5px 5px 15px rgba(0, 0.5, 0.5, 0.5);
+                            padding: 2rem;
+                            max-width: 600px; /* Added max-width for better control */
+                            width: 90%; /* Relative width */
                         }
-                        
-                        .stButton > button {
-                            font-size: 14px !important;
-                            padding: 10px 20px !important;
+
+                        h3.fancy-header {
+                            margin-left:3.8rem!important;
+                            color: #091E63FF !important;
+                            font-size: 2rem; /* Using rem units */
+                            margin-bottom: 1rem !important;
                         }
-                    }
-                </style>
-            """, unsafe_allow_html=True)
+
+                        /* Responsive input fields */
+                        .stTextInput>div>div>input,
+                        .stTextInput>div>div>input:focus {
+                            width: 100% !important;
+                            min-width: unset !important;
+                        }
+
+
+
+                        @media (max-width: 480px) { /* Phone */
+                            div[data-testid="stForm"] {
+                                padding: 1rem !important;
+                                min-height: 300px;
+                                width: 100%;
+                                margin: 0.5rem auto;
+                            }
+
+                            /* Stack form columns vertically */
+                            .stForm .col-container {
+                                flex-direction: column !important;
+                            }
+            
+                
+                    </style>
+                """, unsafe_allow_html=True)
+
 
             with st.form(key="auth_form"):
                 st.markdown(f"<h3 class='fancy-header'>{st.session_state.form_choice}</h3>", unsafe_allow_html=True)
@@ -176,7 +179,7 @@ def run():
                     password = st.text_input('Password', type='password', key="login_password")
 
                     # Use responsive columns
-                    col1, col_space, col2 = st.columns([1.4, 1, 1.5])
+                    col1, col_space, col2 = st.columns([1.5, 0.8, 1.8])
                     with col1:
                         login_submitted = st.form_submit_button("Login")
                     with col2:
@@ -201,7 +204,7 @@ def run():
                     confirm_password = st.text_input('Confirm Password', type='password', key="signup_confirm_password")
 
                     # Use responsive columns
-                    col1, col2 = st.columns([1, 0.717])
+                    col1, col2 = st.columns([0.8, 0.8])
                     with col1:
                         signup_submitted = st.form_submit_button("Create my account")
                     with col2:

@@ -120,7 +120,7 @@ def run():
             st.session_state.na_count = count_na(st.session_state.parsed_data)[0]
             # Save parsed data to database
             if save_resume_analysis(st.session_state.email, st.session_state.parsed_data):
-                st.success("Resume data saved to database!")
+                placeholder = st.empty()
             else:
                 st.error("Failed to save resume data to database.")
 
@@ -139,12 +139,15 @@ def run():
         if file_uploaded and (file_uploaded != st.session_state.uploaded_file):
             for f in os.listdir(user_dir):
                 os.remove(os.path.join(user_dir, f))
+                
+            placeholder.success("Resume uploaded successfully!")  
+            time.sleep(2)
             file_extension = file_uploaded.name.split('.')[-1].lower()
             uploaded_resume_path = os.path.join(user_dir, file_uploaded.name)
             with open(uploaded_resume_path, "wb") as f:
                 f.write(file_uploaded.getbuffer())
-            placeholder.success("Resume uploaded successfully!")
-            time.sleep(2)
+            
+            
             
             if file_extension == "docx":
                 converted_pdf_path = convert_docx_to_pdf(uploaded_resume_path)

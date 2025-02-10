@@ -104,13 +104,13 @@ if __name__ == "__main__":
     st.session_state.setdefault('authenticated', False)
     
     # DEVELOPMENT OVERRIDES
-    IS_DEV = False
+    IS_DEV = True
     if IS_DEV:
         st.session_state.update({
             'authenticated': True,
             'email': 'dev@gmail.com',
             'username': 'Developer',
-            'role_id': 2   })
+            'role_id': 1   })
         cookie_controller.set("session_token", "dev_token", max_age=60*60*24)
 
     # Run the app
