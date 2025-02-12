@@ -361,8 +361,8 @@ def display_tips(processed_data, missing_fields):
             st.markdown(f"""
                 <div style="padding: 10px; margin-top: 0.7rem; margin-bottom: 0.5rem; border-radius: 25px; 
                             text-align: center; overflow: hidden;">
-                    <div style="padding: 10px; background: linear-gradient(to right, #bd1f36, #FF3A2CFF); 
-                                border-radius: 25px; color: #EED5D5FF;">
+                    <div style="padding: 10px; background:  #e63946; 
+                                border-radius: 25px; color: #FFF4F4FF;">
                         ⚠️ Found {na_count} missing fields. Include these fields for ATS compatibility.
                     </div>
                 </div>
@@ -371,7 +371,7 @@ def display_tips(processed_data, missing_fields):
             st.markdown(f"""
                 <div style="padding: 10px; margin-top: 0.7rem; margin-bottom: 0.5rem; border-radius: 25px; 
                             text-align: center; overflow: hidden;">
-                    <div style="padding: 10px; background: linear-gradient(to right, #2b9348, #54FF0BFF); 
+                    <div style="padding: 10px; background:#74c69d;
                                 border-radius: 25px;color:#143601;">
                         ✅ Congratulations! Your resume is ATS compatible!
                     </div>
@@ -382,8 +382,8 @@ def display_tips(processed_data, missing_fields):
             st.markdown(f"""
                 <div style="padding: 10px; margin-top: 0.7rem; margin-bottom: 0.5rem; border-radius: 25px; 
                             text-align: center; overflow: hidden;">
-                    <div style="padding: 10px; background: linear-gradient(to right, #bd1f36, #FF3A2CFF); 
-                                border-radius: 25px; color: #EED5D5FF;">
+                    <div style="padding: 10px; background:  #e63946; 
+                                border-radius: 25px; color: #FFEDEDFF;">
                         🎯 Profile mismatch: Applied for "{applied_profile}" but suggested "{suggested_category}"
                     </div>
                 </div>
@@ -392,7 +392,7 @@ def display_tips(processed_data, missing_fields):
             st.markdown(f"""
                 <div style="padding: 10px; margin-top: 0.7rem; margin-bottom: 0.5rem; border-radius: 25px; 
                             text-align: center; overflow: hidden;">
-                    <div style="padding: 10px; background: linear-gradient(to right, #2b9348, #54FF0BFF); 
+                    <div style="padding: 10px; background:#74c69d;
                                 border-radius: 25px; color: #143601;">
                         ✅ Congratulations! Your Resume keywords match with the Suggested Resume Category!
                     </div>
@@ -405,8 +405,8 @@ def display_tips(processed_data, missing_fields):
                 st.markdown(f"""
                     <div style="padding: 10px; margin-top: 0.7rem; margin-bottom: 2rem; border-radius: 25px; 
                                 text-align: center; overflow: hidden;">
-                        <div style="padding: 10px; background: linear-gradient(to right, #bd1f36, #FF3A2CFF); 
-                                    border-radius: 25px;color: #EED5D5FF;">
+                        <div style="padding: 10px; background:  #e63946; 
+                                    border-radius: 25px;color: #FFF1F1FF;">
                             📅 Found {missing_dates} date fields missing. Use <strong>(Month YYYY)</strong> or <strong>(mm/yyyy)</strong> format.
                         </div>
                     </div>
@@ -415,9 +415,9 @@ def display_tips(processed_data, missing_fields):
                 st.markdown(f"""
                     <div style="padding: 10px; margin-top: 0.7rem; margin-bottom: 2rem; border-radius: 25px; 
                                 text-align: center; overflow: hidden;">
-                        <div style="padding: 10px; background: linear-gradient(to right, #2b9348, #54FF0BFF); 
-                                    border-radius: 25px;color: #EED5D5FF;">
-                            📅 Found no missing date fields.
+                        <div style="padding: 10px; background:#74c69d;
+                                    border-radius: 25px;color: #FFEDEDFF;">
+                            📅 Congratulations! Your dates are well displayed.
                         </div>
                     </div>
                 """, unsafe_allow_html=True)

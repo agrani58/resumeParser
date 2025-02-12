@@ -10,7 +10,6 @@ nltk.download('stopwords')
 import google.generativeai as genai
 #importing database
 # from connection import db_connection
-from app.components import components
 #libraries for parsing from datetime import datetime 
 #word to pdf
 import docx
