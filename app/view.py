@@ -151,6 +151,7 @@ def display_parsed_data_ui(processed_data, structured_missing):
         </style>
         """, unsafe_allow_html=True)
 
+
     st.markdown(
         '''<div style=' text-align: center; margin-top:1rem';><h4 style='color: #1d3557;'>Resume Analysis</h4></div>''',unsafe_allow_html=True)
 
@@ -307,8 +308,12 @@ def display_parsed_data_ui(processed_data, structured_missing):
                     '<div class="warning-text">⚠️ Including hobbies shows well-rounded personality</div>',
                     unsafe_allow_html=True
                 )
-        st.caption("*Not a Mandatory Category*")
-
+                st.markdown("""
+                    <div class="custom-caption">
+                        Not a mandatory category
+                    </div>
+                """, unsafe_allow_html=True)
+        
 
 def profiles_match(applied, suggested):
     # Normalize both job titles to lowercase and strip leading/trailing spaces
@@ -353,7 +358,7 @@ def display_tips(processed_data, missing_fields):
                     </div>""", unsafe_allow_html=True)
 
         st.markdown(f"""<div style="text-align: center; margin-top: 10px;">
-                        <p style="color: #60686DFF; font-size: 0.7rem; margin-top: -25px;text-align: center;">( The score is calculated based on the content of your Resume.)</p>
+                        <p style="color: #353737FF; font-size: 1rem; margin-top: -25px;text-align: center;">( The score is calculated based on the content of your Resume.)</p>
                     </div>""", unsafe_allow_html=True)
 
         # Show either success message or NA count warning
@@ -450,7 +455,18 @@ def display_tips(processed_data, missing_fields):
                                 <h5 style="color: #1d3557;">Recommended Courses & Certifications 📚</h5>
                             </div>''', unsafe_allow_html=True)
                 courses_recommendation(course_list)
-                st.caption("Take these Courses & Certifications for skill development")
+                st.markdown("""
+                    <style>
+                        .custom-caption {
+                            font-size: 12px;
+                            color:grey;
+                            font-weight:bold;
+                        }
+                    </style>
+                    <div class="custom-caption">
+                        Take these Courses & Certifications for skill development
+                    </div>
+                """, unsafe_allow_html=True)
             else:  # Show message when no courses are available for the profile
                 
                 st.markdown(f'''<div style="margin-top:1rem; margin-bottom:0.5rem;">
@@ -476,8 +492,11 @@ def display_tips(processed_data, missing_fields):
                             </div>''', unsafe_allow_html=True)
                 for skill in Recommended_Additional_Skills:
                     st.markdown(f"🪛 &nbsp;&nbsp;&nbsp;{skill}")
-                st.caption("Adding these skills to your resume will boost your chances of getting a job.")
-
+                st.markdown("""
+                    <div class="custom-caption">
+                        Adding these skills to your resume will boost your chances of getting a job.
+                    </div>""", unsafe_allow_html=True)
+                
         st.markdown("""<hr style="height:2px; border:none;  background-color: #01285EFF;  margin: 2rem 0;">""", unsafe_allow_html=True)
 
         # Video recommendation

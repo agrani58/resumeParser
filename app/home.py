@@ -21,23 +21,41 @@ def get_user_upload_dir():
     return os.path.join('./Uploaded_Resumes', st.session_state.email)
 
 def convert_docx_to_pdf(docx_resume_path):
-    if docx_resume_path.endswith(".docx"):
+    try:
+        import pythoncom
+        import comtypes.client
+        
+        # Initialize COM in this thread
+        pythoncom.CoInitialize()
+        
+        # Create Word application instance
+        word = comtypes.client.CreateObject("Word.Application")
+        word.Visible = False  # Run in background
+        
+        # Convert paths to absolute Windows paths
+        docx_path = os.path.abspath(docx_resume_path)
+        pdf_path = os.path.splitext(docx_path)[0] + ".pdf"
+        
         try:
-            import pythoncom, comtypes.client
-            pythoncom.CoInitialize()
-            uploaded_resume_path = os.path.splitext(docx_resume_path)[0] + ".pdf"
-            word = comtypes.client.CreateObject("Word.Application")
-            word.Visible = False
-            in_file = word.Documents.Open(docx_resume_path)
-            in_file.SaveAs(uploaded_resume_path, FileFormat=17)
-            in_file.Close()
-            word.Quit()
-            return uploaded_resume_path
-        except Exception as e:
-            st.error(f"An error occurred during conversion: {e}")
-            return None
+            # Convert document
+            doc = word.Documents.Open(docx_path)
+            doc.SaveAs(pdf_path, FileFormat=17)  # 17 = PDF format
+            doc.Close()
         finally:
-            pythoncom.CoUninitialize()
+            word.Quit()
+            
+        # Verify conversion
+        if not os.path.exists(pdf_path):
+            raise Exception("PDF file was not created successfully")
+            
+        return pdf_path
+        
+    except Exception as e:
+        st.error(f"DOCX to PDF conversion failed: {str(e)}")
+        return None
+    finally:
+        # Uninitialize COM regardless of success/failure
+        pythoncom.CoUninitialize()
 
 def show_resume(uploaded_resume_path):
     with open(uploaded_resume_path, "rb") as f:
@@ -89,7 +107,12 @@ def clear_user_files():
         for f in os.listdir(user_dir):
             os.remove(os.path.join(user_dir, f))
         os.rmdir(user_dir)
-
+def extract_text(uploaded_resume_path):
+    if uploaded_resume_path.endswith(".pdf"):
+        return extract_text_from_pdf(uploaded_resume_path)
+    else:
+        st.error("Unsupported file format")
+        return None
 def run():
     main_components()
     
@@ -156,7 +179,7 @@ def run():
             checkout_url = create_checkout_session(st.session_state.email)
             if checkout_url:
                 st.markdown(f"""<meta http-equiv="refresh" content="0; url='{checkout_url}'" />""", 
-                          unsafe_allow_html=True)
+                            unsafe_allow_html=True)
         return
             
     elif subscription_type == 'premium':
@@ -184,7 +207,7 @@ def run():
     user_dir = get_user_upload_dir()
     if not os.path.exists(user_dir):
         os.makedirs(user_dir)
-
+    
     if not st.session_state.get('resume_path'):
         existing_files = [f for f in os.listdir(user_dir) if f.lower().endswith(('.pdf', '.docx'))]
         if existing_files:
@@ -215,21 +238,33 @@ def run():
             file_uploaded = st.file_uploader(" ", type=["pdf", "docx"], key="home_file_uploader")
             placeholder = st.empty()
             if file_uploaded and (file_uploaded != st.session_state.get('uploaded_file')):
+                # Clear existing files
                 for f in os.listdir(user_dir):
                     os.remove(os.path.join(user_dir, f))
                 placeholder.success("Resume uploaded successfully!")
                 time.sleep(2)
                 file_extension = file_uploaded.name.split('.')[-1].lower()
                 uploaded_resume_path = os.path.join(user_dir, file_uploaded.name)
+                
                 with open(uploaded_resume_path, "wb") as f:
                     f.write(file_uploaded.getbuffer())
+                
                 if file_extension == "docx":
-                    converted_pdf_path = convert_docx_to_pdf(uploaded_resume_path)
-                    if converted_pdf_path:
-                        uploaded_resume_path = converted_pdf_path
-                    else:
-                        st.error("Failed to convert DOCX to PDF.")
+                    converted_path = convert_docx_to_pdf(uploaded_resume_path)
+                    if not converted_path:
+                        st.error("Failed to convert DOCX to PDF")
                         return
+                    # Remove original DOCX after conversion
+                    try:
+                        os.remove(uploaded_resume_path)
+                    except Exception as e:
+                        st.error(f"Error cleaning up DOCX file: {e}")
+                    uploaded_resume_path = converted_path
+                
+                # Verify PDF exists
+                if not uploaded_resume_path.endswith(".pdf"):
+                    st.error("Invalid file format after conversion")
+                    return
                 st.session_state.resume_path = uploaded_resume_path
                 st.session_state.uploaded_file = file_uploaded
                 st.session_state.parsed_data = None

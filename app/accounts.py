@@ -10,7 +10,7 @@ from app.schema import delete_session_token, get_connection, create_session_toke
 from app.libraries import *
 from app.view import display_footer
 from app.payments import create_checkout_session
-from app.components import main_components
+from app.components import components
 import os
 import secrets
 from app.home import clear_user_files
@@ -113,7 +113,7 @@ def logout():
     st.rerun()
 
 def run():
-    main_components()
+    components()
 
     payment_status = st.query_params.get("payment")
     if payment_status:

@@ -54,7 +54,7 @@ def main_components():
     </style>
     """
     st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-    background_image_url = "https://i.imgur.com/u0JDacq.png"
+    background_image_url = "https://i.imgur.com/vkKlyNY.png"
     # Page background color
     page_bg_color = f"""
     
