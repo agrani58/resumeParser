@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: resume-parser-webhook
+    runtime: python
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn webhook:app
+    envVars:
+      - key: STRIPE_SECRET_KEY
+        fromGroup: stripe
+      - key: STRIPE_WEBHOOK_SECRET
+        fromGroup: stripe
+      - key: DATABASE_URL
+        fromGroup: database
+
+  - type: web
+    name: resume-parser-streamlit
+    runtime: python
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run main.py
+    envVars:
+      - key: STRIPE_SECRET_KEY
+        fromGroup: stripe
+      - key: DATABASE_URL
+        fromGroup: database

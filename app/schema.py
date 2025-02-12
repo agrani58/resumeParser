@@ -3,7 +3,7 @@ import bcrypt
 import mysql.connector
 from datetime import datetime as dt, timedelta, timezone
 from mysql.connector import pooling
-from .utils import resume_score
+from app.utils import resume_score
 import os
 
 # Database connection pool

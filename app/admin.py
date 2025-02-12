@@ -3,7 +3,7 @@ import pandas as pd
 import streamlit as st
 import plotly.express as px
 from datetime import datetime
-from .accounts import logout
+from app.accounts import logout
 from app.schema import get_connection
 from app.view import display_footer
 from app.components import main_components
@@ -77,6 +77,7 @@ def get_resume_data(for_analytics=False, for_skills=False, for_subscriptions=Fal
                         ra.professional_experience AS Professional_Experience_in_Years,
                         ra.linkedin AS LinkedIn,
                         ra.github AS GitHub,
+                        ra.resume_score AS Resume_Score,  
                         GROUP_CONCAT(DISTINCT s.skill_name) AS Skills
                     FROM resume_analysis ra
                     LEFT JOIN phone_numbers pn ON ra.analysis_id = pn.analysis_id
@@ -96,7 +97,7 @@ def get_resume_data(for_analytics=False, for_skills=False, for_subscriptions=Fal
     except Exception as e:
         st.error(f"Database error: {e}")
         return pd.DataFrame()
-# admin.py
+
 def run():
     main_components()
     
@@ -109,7 +110,7 @@ def run():
     col1, col2 = st.columns([13, 1])
     with col1:
         st.markdown(f"""<h3 style="color: #1d3557;">Welcome {st.session_state.username}!</h3>""", 
-                   unsafe_allow_html=True)
+                    unsafe_allow_html=True)
     with col2:
         if st.button(" Log Out", key="logout_btn"):
             logout()
@@ -125,6 +126,8 @@ def run():
     df = get_resume_data()
     
     # Define column order at the top level
+
+    # Define column order at the top level
     column_order = [
         "timestamp",
         "Name",
@@ -132,11 +135,13 @@ def run():
         "Phone_1",
         "Address",
         "Highest_Education",
+        "Resume_Score",
         "Applied_for_Profile",
         "Skills",
         "Professional_Experience_in_Years",
         "LinkedIn",
         "GitHub"
+         # Add this line
     ]
 
     # Add search functionality
@@ -153,7 +158,7 @@ def run():
                 df['Name'].str.lower().str.contains(search_lower, na=False) |
                 df['Applied_for_Profile'].str.lower().str.contains(search_lower, na=False) |
                 df['Skills'].str.lower().str.contains(search_lower, na=False)
-                )
+            )
             df = df[mask]
         # Process DataFrame columns
         df = df[column_order]
@@ -187,6 +192,10 @@ def run():
                         "Professional_Experience_in_Years": st.column_config.NumberColumn(
                             "Experience (Years)",
                             format="%.1f"
+                        ),
+                        "Resume_Score": st.column_config.NumberColumn(  # Add this block
+                            "Resume Score",
+                            format="%.2f"
                         )
                     },
                     height=500,
@@ -196,8 +205,7 @@ def run():
     else:
         st.info("No resume data found matching your criteria.")
 
-    # Rest of your visualization code remains unchanged below...
-    # [Keep all your existing visualization code as is]
+
 #========================================================================================================================
 #=======================================================================================================================
     st.markdown("---")
