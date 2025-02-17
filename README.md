@@ -25,19 +25,19 @@ ATS Compatibility Score: Get instant feedback on resume quality
 2) Interview/resume preparation videos
 
 **Tech Stack 🛠️**
- Frontend: Streamlit
- Backend: Python 3.8+
- Database: MySQL
- AI Integration: Google Gemini API
- Payments: Stripe
- Auth: Custom session management
- Visualization: Plotly
+ Frontend: Streamlit <br/> 
+ Backend: Python 3.8+ <br/> 
+ Database: MySQL <br/> 
+ AI Integration: Google Gemini API <br/> 
+ Payments: Stripe <br/> 
+ Auth: Custom session management  <br/> 
+ Visualization: Plotly  <br/> 
 
 **Installation 🚀**
- Prerequisites
- Python 3.8+
- MySQL Server
- Stripe & Gemini API keys
+ Prerequisites  <br/> 
+ Python 3.8+  <br/> 
+ MySQL Server  <br/> 
+ Stripe & Gemini API keys  <br/> 
 
 
 ------------------------------------------------------AI RESUME PARSER DEMO--------------------------------------
@@ -56,10 +56,10 @@ _________________________________________________ADMIN__________________________
 
 
 **Acknowledgments 🎓**
-Supervision: Mr. Sandeep Gautam, Apex College
-Streamlit Community
-Google Gemini API Team
+Supervision: Mr. Sandeep Gautam, Apex College  <br/> 
+Streamlit Community  <br/> 
+Google Gemini API Team  <br/> 
 
-Developed by **Agrani Chapagain**
-📧 agrani58@gmail.com
-🏫 Apex College Project
+Developed by **Agrani Chapagain** 
+📧 agrani58@gmail.com  <br/> 
+🏫 Apex College Project  <br/> 
