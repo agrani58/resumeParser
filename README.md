@@ -2,7 +2,7 @@
 
 An intelligent resume parsing web application powered by AI (Gemini API) that provides detailed analysis, ATS compatibility checks, and career improvement recommendations.
 
-**Features **✨
+**Features**✨
 Resume Parsing: Extract key details from PDF/DOCX resumes
 ATS Compatibility Score: Get instant feedback on resume quality
 
@@ -22,7 +22,7 @@ ATS Compatibility Score: Get instant feedback on resume quality
 
 **Career Resources:**
 1) Personalized course recommendations
-2)Interview/resume preparation videos
+2) Interview/resume preparation videos
 
 **Tech Stack 🛠️**
 Frontend: Streamlit
