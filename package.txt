@@ -1,0 +1,9 @@
+libffi-dev
+python3-dev
+
+
+# addedjustfordeployment
+
+#[server]
+#pre-installed-packages = ["pip"]
+#created runtime.txt
