@@ -2,24 +2,19 @@ comtypes==1.4.9
 fitz==0.0.1.dev2
 Flask==3.1.0
 fpdf==1.7.2
-mysql_connector_repackaged==0.3.1
+mysql-connector-python==8.0.33
 nltk==3.9.1
 pandas==2.2.3
 pdfminer.six==20231228
 pdfplumber==0.11.5
 Pillow==11.1.0
 plotly==6.0.0
-protobuf==5.29.3
 PyPDF2==3.0.1
 python-dotenv
-#pyenv==3.10.12 #added for deployment
 python_bcrypt==0.3.2
 python_docx==1.1.2
-#pywin32==308
 streamlit==1.42.0
 streamlit_authenticator==0.1.5
 streamlit_cookies_controller==0.0.4
 streamlit_option_menu==0.4.0
 stripe==11.5.0
-mysql-connector-python==8.0.33
-
