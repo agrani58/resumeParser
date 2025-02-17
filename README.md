@@ -24,7 +24,7 @@ ATS Compatibility Score: Get instant feedback on resume quality
 1) Personalized course recommendations
 2) Interview/resume preparation videos
 
-**Tech Stack 🛠️**
+**Tech Stack 🛠️**  <br/> 
  Frontend: Streamlit <br/> 
  Backend: Python 3.8+ <br/> 
  Database: MySQL <br/> 
@@ -55,11 +55,11 @@ _________________________________________________ADMIN__________________________
 ![image](https://github.com/user-attachments/assets/2fa29882-30fb-4e27-9611-688696b795c4)
 
 
-**Acknowledgments 🎓**
+**Acknowledgments 🎓**  <br/> 
 Supervision: Mr. Sandeep Gautam, Apex College  <br/> 
 Streamlit Community  <br/> 
 Google Gemini API Team  <br/> 
 
-Developed by **Agrani Chapagain** 
+Developed by **Agrani Chapagain**   <br/> 
 📧 agrani58@gmail.com  <br/> 
 🏫 Apex College Project  <br/> 
