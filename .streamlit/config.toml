@@ -1,2 +1,5 @@
 [server]
 runOnSave = true
+
+[server]
+pre-installed-packages = ["pip"]
