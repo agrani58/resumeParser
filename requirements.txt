@@ -14,7 +14,7 @@ PyPDF2==3.0.1
 python-dotenv==1.0.1
 python_bcrypt==0.3.2
 python_docx==1.1.2
-pywin32==308
+#pywin32==308
 streamlit==1.42.0
 streamlit_authenticator==0.1.5
 streamlit_cookies_controller==0.0.4
