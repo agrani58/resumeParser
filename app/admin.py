@@ -373,3 +373,4 @@ def run():
         
         st.plotly_chart(fig, use_container_width=True,Key="Professional_experience")
     display_footer()
+__all__ = ['run']  ##added this for deployment. workis after removing too
