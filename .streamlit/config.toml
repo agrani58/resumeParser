@@ -1,5 +1,7 @@
-[server]
-runOnSave = true
+#[server]
+#runOnSave = true
+#dont commit the above line to run locally
+
 
 [server]
 pre-installed-packages = ["pip"]
