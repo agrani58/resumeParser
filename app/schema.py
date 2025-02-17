@@ -20,15 +20,15 @@ connection_pool = pooling.MySQLConnectionPool(
     pool_size=5,
     **db_config
 )
-
+##pooling because MYSQL kept crashing""
 def get_connection():
-    """Get a connection from the pool with reconnect capability"""
+
     conn = connection_pool.get_connection()
     if not conn.is_connected():
         conn.reconnect(attempts=3, delay=1)
     return conn
 def delete_session_token(session_token: str) -> bool:
-    """Delete a user session token from the database"""
+
     try:
         with get_connection() as conn:
             with conn.cursor() as cursor:
@@ -38,12 +38,13 @@ def delete_session_token(session_token: str) -> bool:
                 """, (session_token,))
                 conn.commit()
                 return cursor.rowcount > 0
+            
     except Exception as e:
         print(f"Error deleting session token: {e}")
         return False
     return True
 def create_session_token(email, token, expires_at):
-    """Create a session token for the user."""
+
     try:
         with get_connection() as conn:
             with conn.cursor() as cursor:
@@ -58,7 +59,7 @@ def create_session_token(email, token, expires_at):
         return False
 
 def create_user(email, username, password):
-    """Create a new user with free trial."""
+
     try:
         with get_connection() as conn:
             with conn.cursor() as cursor:
@@ -74,13 +75,13 @@ def create_user(email, username, password):
                     return False
                 
                 hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-                # Create user
+                
                 cursor.execute("""
                     INSERT INTO users (email, username, password, role_id, signup_date)
                     VALUES (%s, %s, %s, 1, CURRENT_TIMESTAMP)
                 """, (email, username, hashed))
                 
-                # Create free trial subscription
+                #  free trial subscription
                 cursor.execute("""
                     INSERT INTO subscriptions 
                     (email, subscription_type, start_date, end_date, is_active)
@@ -93,7 +94,6 @@ def create_user(email, username, password):
         return False
 
 def verify_user(email, password):
-    """Verify user credentials."""
     try:
         with get_connection() as conn:
             with conn.cursor(buffered=True) as cursor:
@@ -105,9 +105,52 @@ def verify_user(email, password):
     except mysql.connector.Error as err:
         print(f"Auth error: {err}")
         return {'status': False, 'username': None}
+    
+def delete_analysis(analysis_ids):
+    try:
+        with get_connection() as conn:
+            with conn.cursor() as cursor:
+                
+                placeholders = ','.join(['%s'] * len(analysis_ids))
+                cursor.execute(
+                    f"SELECT DISTINCT user_email FROM resume_analysis "
+                    f"WHERE analysis_id IN ({placeholders})",
+                    tuple(analysis_ids)
+                )
+                affected_users = [row[0] for row in cursor.fetchall()]
 
+                # Delete analyses
+                cursor.execute(
+                    f"DELETE FROM resume_analysis WHERE analysis_id IN ({placeholders})",
+                    tuple(analysis_ids)
+                )
+                
+                # Check remaining analyses for affected users
+                for user_email in affected_users:
+                    cursor.execute(
+                        "SELECT COUNT(*) FROM resume_analysis WHERE user_email = %s",
+                        (user_email,)
+                    )
+                    remaining = cursor.fetchone()[0]
+                    
+                    # Deactivate subscription if no analyses remain
+                    if remaining == 0:
+                        cursor.execute(
+                            "UPDATE subscriptions SET is_active = FALSE "
+                            "WHERE email = %s AND is_active = TRUE",
+                            (user_email,)
+                        )
+                
+                conn.commit()
+                return cursor.rowcount
+
+    except Exception as e:
+        print(f"Error deleting analysis: {e}")
+        conn.rollback()
+        return 0
+    
 def save_resume_analysis(user_email, parsed_data):
-    """Save or update resume analysis data with proper connection handling."""
+
     conn = None
     try:
         conn = get_connection()

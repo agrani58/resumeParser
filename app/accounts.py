@@ -1,5 +1,4 @@
 from dotenv import load_dotenv
-from streamlit import secrets
 import stripe
 import re
 import time
@@ -19,13 +18,12 @@ load_dotenv()
 
 # Initialize Stripe
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
-
+#rgular expression for form validation
 def is_valid_email(email):
     return re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email)
 
 def is_password_strong(password):
-    return (len(password) >= 3 and 
-            any(c in "!@#$%^&*()-_" for c in password))
+    return (len(password) >= 3 and any(c in "!@#$%^&*()-_" for c in password))
 
 def check_session():
     if "authenticated" not in st.session_state:
@@ -88,8 +86,7 @@ def login(email, password):
     expires_at = dt.now(timezone.utc) + timedelta(days=1)
     
     if create_session_token(email, session_token, expires_at):
-        cookie_controller.set("session_token", session_token, 
-            max_age=int((expires_at - dt.now(timezone.utc)).total_seconds()))       
+        cookie_controller.set("session_token", session_token, max_age=int((expires_at - dt.now(timezone.utc)).total_seconds()))       
         st.session_state.update({
             'authenticated': True,
             'email': email,
@@ -114,7 +111,7 @@ def logout():
 
 def run():
     components()
-
+##handling the payment status and updating the user's subscription
     payment_status = st.query_params.get("payment")
     if payment_status:
         if payment_status == "success":
@@ -190,7 +187,7 @@ def run():
                 sub_end = subscription_data[2]
                 signup_date = subscription_data[3]
 
-                # Convert naive datetimes to aware
+               
                 if sub_end and sub_end.tzinfo is None:
                     sub_end = sub_end.replace(tzinfo=timezone.utc)
                 if signup_date and signup_date.tzinfo is None:

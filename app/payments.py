@@ -1,4 +1,4 @@
-# payments.py
+
 from datetime import timezone
 import stripe
 import os
@@ -9,7 +9,6 @@ from app.schema import get_connection
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
-# In payments.py
 def create_checkout_session(email: str):
     try:
         return stripe.checkout.Session.create(
@@ -21,9 +20,9 @@ def create_checkout_session(email: str):
             mode='subscription',
             success_url=os.getenv("BASE_URL") + "?payment=success",
             cancel_url=os.getenv("BASE_URL") + "?payment=cancel",
-            customer_email=email,  # Uses parameter
+            customer_email=email,  
             subscription_data={
-                'metadata': {'user_email': email}  # Uses parameter
+                'metadata': {'user_email': email}  
             }
         ).url
     except Exception as e:
@@ -46,41 +45,43 @@ def check_subscription(email):
                 subscription = cursor.fetchone()
                 
                 if not subscription:
-                    return False  # No subscription found
+                    return False  
                 
                 subscription_type, end_date, is_active = subscription
                 current_time = dt.now(timezone.utc)
                 
                 if subscription_type == 'free' and current_time > end_date:
-                    return False  # Free trial expired
+                    return False  
                 elif subscription_type == 'premium' and (not is_active or current_time > end_date):
-                    return False  # Premium subscription expired
+                    return False  
                 
-                return True  # Subscription is valid
+                return True 
     except Exception as e:
         st.error(f"Subscription check error: {e}")
         return False
+    
+    #handling payment after doing the sub payment
 def handle_payment_success(email):
-    """Update subscriptions after successful payment"""
+
     try:
-        # Check for valid email
+       
         if not email:
             st.error("Payment failed: User email is missing.")
             return False
 
-        # Debug: Confirm email is captured
+        # Debug  Confirm email is captured
         st.write(f"Debug: Updating subscriptions for email '{email}'")
 
         with get_connection() as conn:
             with conn.cursor() as cursor:
-                # Expire existing subscriptions
+        
                 cursor.execute("""
                     UPDATE subscriptions 
                     SET is_active = FALSE 
                     WHERE email = %s
                 """, (email,))
                 
-                # Insert new subscription
+                
                 start_date = dt.now(timezone.utc)
                 end_date = start_date + timedelta(days=30)
                 

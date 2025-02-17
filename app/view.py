@@ -43,6 +43,7 @@ def display_parsed_data(parsed_data, missing_fields):
             structured_missing[top_field][sub_field] += 1
         else:
             structured_missing[top_field]["_top"] += 1
+            
     processed_data = {
         "Full_Name": parsed_data.get("Name", "N/A"),
         "Email": parsed_data.get("Email", "N/A"),
@@ -143,7 +144,7 @@ def display_parsed_data_ui(processed_data, structured_missing):
     st.markdown("""
         <style>
             .warning-text {
-                font-size: 12px;
+                font-size: 16px;
                 color: red;
                 margin-top: -6px !important;
                 margin-bottom: 10px !important;
@@ -458,7 +459,7 @@ def display_tips(processed_data, missing_fields):
                 st.markdown("""
                     <style>
                         .custom-caption {
-                            font-size: 12px;
+                            font-size: 16px;
                             color:grey;
                             font-weight:bold;
                         }

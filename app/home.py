@@ -100,13 +100,15 @@ def extract_text_from_pdf(uploaded_resume_path):
     except Exception as e:
         st.error(f"Error extracting text from PDF: {e}")
         return None
-
+# HEHE FUNction
 def clear_user_files():
     user_dir = get_user_upload_dir()
     if user_dir and os.path.exists(user_dir):
         for f in os.listdir(user_dir):
             os.remove(os.path.join(user_dir, f))
         os.rmdir(user_dir)
+        
+        
 def extract_text(uploaded_resume_path):
     if uploaded_resume_path.endswith(".pdf"):
         return extract_text_from_pdf(uploaded_resume_path)
@@ -116,7 +118,7 @@ def extract_text(uploaded_resume_path):
 def run():
     main_components()
     
-    # Check subscription status
+    
     if not st.session_state.get('authenticated'):
         st.warning("Please login to access this feature!")
         return
@@ -162,13 +164,13 @@ def run():
     current_time = dt.now(timezone.utc)
     subscription_active = False
     
-    # Check subscription validity
+    # Check subscription 
     if subscription_type == 'premium' and sub_end:
         subscription_active = current_time < sub_end.replace(tzinfo=timezone.utc)
     elif subscription_type == 'free' and trial_end:
         subscription_active = current_time < trial_end
         
-    # Handle free trial and premium expiration logic
+    # free trial and premium expiration 
     if not subscription_active:
         if subscription_type == 'free':
             st.error("🔒 Your free trial has ended!")
@@ -196,9 +198,8 @@ def run():
                         st.write(f"Please complete payment [here]({checkout_url}).")
                     else:
                         st.error("Failed to create checkout session.")
-                return  # Stop further execution if premium has expired
+                return  
 
-    # Only show uploader if user is premium or still in free trial
     st.session_state.setdefault('uploaded_file', None)
     st.session_state.setdefault('parsed_data', None)
     st.session_state.setdefault('na_count', 0)
@@ -230,7 +231,7 @@ def run():
                 <h5 style='color: #1d3557;'>Upload Your Resume</h5>
             </div>''',
             unsafe_allow_html=True
-        )
+        )        
         # Disable file uploader if subscription/trial has expired
         if (subscription_type == 'free' and current_time > trial_end) or (subscription_type == 'premium' and current_time > sub_end):
             st.warning("🔒 Please upgrade to premium to access the file uploader.")
